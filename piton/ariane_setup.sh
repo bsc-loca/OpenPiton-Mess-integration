@@ -80,14 +80,19 @@ if [ "$RISCV" ==  "" ]
 then
   export RISCV=$HOME/scratch/riscv_install
 fi
-export VERILATOR_ROOT=$ARIANE_ROOT/tmp/verilator-4.014/
+if [ "$VERILATOR_ROOT" ==  "" ]
+then
+  export VERILATOR_ROOT=$SARG_ROOT/tmp/verilator-4.014/
+fi
 
 # setup paths
 export PATH=$RISCV/bin:$VERILATOR_ROOT/bin:$PATH
-export LIBRARY_PATH=$RISCV/lib
-export LD_LIBRARY_PATH=$RISCV/lib
-export C_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
-export CPLUS_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include
+export LIBRARY_PATH=$RISCV/lib:$LIBRARY_PATH
+export LD_LIBRARY_PATH=$RISCV/lib:$LD_LIBRARY_PATH
+export C_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include:$C_INCLUDE_PATH
+export CPLUS_INCLUDE_PATH=$RISCV/include:$VERILATOR_ROOT/include:$CPLUS_INCLUDE_PATH
+export HPDCACHE_ROOT=$ARIANE_ROOT/cv-hpdcache
+export HPDCACHE_DIR=../
 
 # source OpenPiton setup script
 # note: customize this script to reflect your tool setup

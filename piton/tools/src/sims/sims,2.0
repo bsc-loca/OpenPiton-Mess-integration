@@ -172,7 +172,10 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'pal_use_tgseed' => 0,
         'parallel' => 0,
         'ost1' => 0,
-        'ariane' => 0,
+        'ariane' => 0,       
+        'hbm_lat' => 0,
+        'multimc' => 0,
+        'multimc_indices' => "",
         'pico' => 0,
         'pico_het' => 0,
         'post_process_cmd' => [],
@@ -235,6 +238,9 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'vlt_build' => 0,
         'vlt_build_args' => [],
         'vlt_run' => 0,
+        'metro_mpi_build' => 0,    
+        'metro_mpi_run' => 0,
+        'metro_mpi_build_args' => [],
         'version' => 0,
         'vfile' => [],
         'mem_init_py' => ""
@@ -325,7 +331,12 @@ GetOptions (\%opt,
             'model_dir=s',
             'parallel!',
             'ost1!',
-            'ariane!',
+            'ariane!',           
+            'hbm_lat=i',
+            'multimc=s',
+            'multimc_indices=s',
+            'metro_mpi_build!',
+            'metro_mpi_run!',
             'pico!',
             'pico_het!',
             'sparcv9!',
@@ -342,6 +353,8 @@ GetOptions (\%opt,
             'simslog!',
             'simslog_name=s',
             'build_id=s',
+            'sys=s',
+            'hbm!',
            ) ;
 
 die ("DIE. -ariane and -pico/-pico_het cannot be set simultaneously") if ($opt{ariane} && ($opt{pico} || $opt{pico_het})) ;
@@ -357,7 +370,8 @@ push (@{$opt{config_cpp_args}}, "-DFLIST_OST1")     if ($opt{ost1} || $opt{pico_
 push (@{$opt{config_cpp_args}}, "-DFLIST_PICO")     if ($opt{pico} || $opt{pico_het}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ARIANE")   if ($opt{ariane}) ;
 push (@{$opt{config_cpp_args}}, "-DFLIST_ORAM")     if ($opt{oram}) ;
-
+push (@{$opt{config_cpp_args}}, "-DHBM_DEF")        if ($opt{hbm}) ;
+push (@{$opt{config_cpp_args}}, "-DSIM_USE_DPI")   if ($opt{metro_mpi_build}) ;
 ################################################################################
 # define $result_dir
 ################################################################################
@@ -494,25 +508,25 @@ else { $model_path = "$model_dir/$opt{model}/$opt{build_id}" ; }
 &create_model_path () if ($opt{vcs_build} or $opt{other_sim_build} or
                           $opt{icv_build} or $opt{ncv_build} or
                           $opt{msm_build} or $opt{vlt_build} or
-						  $opt{riv_build}) ;
+                          $opt{riv_build}) or $opt{metro_mpi_build};
 
 ################################################################################
 # do some pre building stuff - generate flist
 ################################################################################
 
-&pre_build () if ($opt{vcs_build} or $opt{other_sim_build} or
+&pre_build () if (($opt{vcs_build} or $opt{other_sim_build} or
                   $opt{icv_build} or $opt{ncv_build} or
                   $opt{msm_build} or $opt{vlt_build} or
-				  $opt{riv_build}) ;
+                   $opt{riv_build} or $opt{metro_mpi_build}) and !$opt{noclean} ) ;
 
 ################################################################################
 # build the simulation model
 ################################################################################
 
-&generic_sim_build () if ($opt{vcs_build} or $opt{ncv_build} or
+&generic_sim_build () if (($opt{vcs_build} or $opt{ncv_build} or
                           $opt{icv_build} or $opt{other_sim_build} or
                           $opt{msm_build} or $opt{vlt_build} or
-						  $opt{riv_build}) ;
+                           $opt{riv_build} or $opt{metro_mpi_build}) and !$opt{noclean} ) ;
 
 ################################################################################
 # assemble .s diag
@@ -528,7 +542,8 @@ else { $model_path = "$model_dir/$opt{model}/$opt{build_id}" ; }
 
 &oram_image () if (($opt{vcs_run} or $opt{ncv_run} or
                     $opt{icv_run} or $opt{other_sim_run} or
-                    $opt{msm_run} or $opt{vlt_run} or $opt{riv_run}) and
+                    $opt{msm_run} or $opt{vlt_run} or 
+                    $opt{riv_run} or $opt{metro_mpi_run}) and
                     $opt{oram}); #if ($opt{image_diag_name}
 
 ################################################################################
@@ -537,7 +552,8 @@ else { $model_path = "$model_dir/$opt{model}/$opt{build_id}" ; }
 
 &generic_sim_run () if ($opt{vcs_run} or $opt{ncv_run} or
                         $opt{icv_run} or $opt{other_sim_run} or
-                        $opt{msm_run} or $opt{vlt_run} or $opt{riv_run}) ;
+                        $opt{msm_run} or $opt{vlt_run} or
+                        $opt{metro_mpi_run} or $opt{riv_run}) ;
 
 ################################################################################
 # run diag.pl if present
@@ -546,7 +562,8 @@ else { $model_path = "$model_dir/$opt{model}/$opt{build_id}" ; }
 if (    -e "diag.pl" and
   ( $opt{vcs_run} or $opt{ncv_run} or
       $opt{icv_run} or $opt{other_sim_run} or
-      $opt{msm_run} or $opt{vlt_run} or $opt{riv_run}) and
+      $opt{msm_run} or $opt{vlt_run} or 
+      $opt{metro_mpi_run} or $opt{riv_run}) and
        $opt{run_diag_pl} )
 {
   print "$prg: executing diag.pl\n";
@@ -563,7 +580,8 @@ if (    -e "diag.pl" and
 
 &post_process if ($opt{vcs_run} or $opt{ncv_run} or
                   $opt{icv_run} or $opt{other_sim_run} or
-                  $opt{msm_run} or $opt{vlt_run} or $opt{riv_run}) ;
+                  $opt{msm_run} or $opt{vlt_run} or
+                  $opt{metro_mpi_run} or $opt{riv_run}) ;
 
 &print_footer () ;
 
@@ -1172,8 +1190,11 @@ sub gen_flist
       } else {
         my $linepyv = (split(' ',substr($line, 0, -1)))[-1] . ".pyv";
         # print("\$linepyv is $linepyv\n");
-        my $linetmp = substr($line, 0, -3) . ".tmp.". substr($line, -2, 1);
-        my $linetmpout = (split(' ',substr($line, 0, -3)))[-1] . ".tmp." . substr($line, -2, 1);
+        my $ext = substr($line, -4, -1);
+        # print("\$ext=$ext\n");
+        my $linetmp    = ($ext eq '.sv')?            substr($line, 0, -4) .       ".tmp.sv"  :              substr($line, 0, -3) .        ".tmp.". substr($line, -2, 1);
+        my $linetmpout = ($ext eq '.sv')? (split(' ',substr($line, 0, -4)))[-1] . ".tmp.sv"  :   (split(' ',substr($line, 0, -3)))[-1]  . ".tmp.". substr($line, -2, 1);
+        # print("\$linetmp is $linetmp\n");
         if (-e $linepyv) {
           # print("original is $line\n");
           !system("pyhp.py $linepyv > $linetmpout") or die("Error running PyHP for $linepyv\n");;
@@ -1467,6 +1488,12 @@ sub generic_sim_build
       }
     }
 
+    if ($opt{metro_mpi_build}) {
+      foreach my $x (@{$opt{metro_mpi_build_args}})
+      {
+          push (@{$opt{sim_build_args}}, $x);
+      }
+    }
     if ($opt{ncv_build}) {
       $ld_lib_path .= "$ENV{DV_ROOT}/tools/";
       $ld_lib_path .= $os_cpu_slash;
@@ -1488,6 +1515,10 @@ sub generic_sim_build
       }
       # lib_path needs to be before vcs_build_args
       $build_cmd .= $lib_path;
+      if ($opt{metro_mpi_build}) {
+        $build_cmd .= "-CFLAGS -DX_TILES=$opt{x_tiles} " ;
+        $build_cmd .= "-CFLAGS -DY_TILES=$opt{y_tiles} " ;
+      }
     }
     if ($opt{ncv_build}) {
       $build_cmd = "LD_LIBRARY_PATH=";
@@ -1514,6 +1545,31 @@ sub generic_sim_build
       $build_cmd = "vlib work; vlog " ;
     }
 	
+ if ($opt{metro_mpi_build}) {
+      $build_cmd = "verilator  -cc -build  " ;
+      foreach my $top_n (@{$opt{toplevel}}) {
+        $build_cmd .= "-exe $dv_root/tools/verilator/my_$top_n.cpp " ;
+      }
+      # improvable
+      foreach my $top_n (@{$opt{toplevel}}) {
+        $build_cmd .= "--top-module $top_n ";
+      }
+      $build_cmd .= "-Wno-fatal " ;
+      $build_cmd .= "-Wno-BLKANDNBLK " ;
+      $build_cmd .= "-Wno-TIMESCALEMOD " ;
+      $build_cmd .= "--no-timing " if(does_verilator_suport('--no-timing')) ;
+      $build_cmd .= "-DPITON_DPI " ;
+      $build_cmd .= "-CFLAGS -DPITON_LATMODEL " if( ($ENV{PITON_EXTRA_MEMS} > 0) && (defined $ENV{PITON_LAT_FILE}));     
+      $build_cmd .= "--unroll-count 256 " ;
+      $build_cmd .= "-CFLAGS -DVERILATOR " ;
+      $build_cmd .= "-CFLAGS -lstdc++ " ;
+      $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
+      $build_cmd .= "-CFLAGS -I$dv_root/design/chip/tile/vas_tile_core/konata/src/models/cxx " ;
+        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset" || $opt{sys} eq "metro_fake_mem") {        
+        $build_cmd .= "-CFLAGS -DX_TILES=$opt{x_tiles} " ;
+        $build_cmd .= "-CFLAGS -DY_TILES=$opt{y_tiles} " ;
+      }    
+    }
     if ($opt{vlt_build}) {
       $build_cmd = "verilator -cc " ;
       $build_cmd .= "-exe $dv_root/tools/verilator/my_top.cpp " ;
@@ -1523,6 +1579,8 @@ sub generic_sim_build
       $build_cmd .= "$dv_root/tools/pli/iop/iob.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/cpx.cc " ;
       $build_cmd .= "$dv_root/tools/pli/iop/pcx.cc " ;
+      $build_cmd .= "$dv_root/tools/pli/Realistic_lat/bw_lat_mem_ctrl.cc " if(defined $ENV{PITON_LAT_FILE});
+      $build_cmd .= "$dv_root/tools/pli/Realistic_lat/lat.cc " if(defined $ENV{PITON_LAT_FILE});
       $build_cmd .= "--top-module cmp_top " ;
       $build_cmd .= "-Wno-fatal " ;
       $build_cmd .= "-Wno-BLKANDNBLK " ;
@@ -1533,6 +1591,7 @@ sub generic_sim_build
       $build_cmd .= "-CFLAGS -DPITON_DPI " ;
       $build_cmd .= "-CFLAGS -lstdc++ " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/iop " ;
+      $build_cmd .= "-CFLAGS -I$dv_root/tools/pli/Realistic_lat " if(defined $ENV{PITON_LAT_FILE});
       $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
     }
     if ($opt{other_sim_build}) {
@@ -1567,6 +1626,12 @@ sub generic_sim_build
 
     print "$prg: $build_cmd\n";
 
+    #create a makefile containg build_cmd
+    open (BUILD, "> build.sh") or die ("DIE. can't open build.sh");
+    my $ff=$build_cmd;
+    $ff =~ s/\$DV_ROOT/$dv_root/g;
+    print BUILD "#!/bin/bash\n $ff";
+    close BUILD;
     if (! $opt{dryrun}) {
       system ($build_cmd) ;
       die ("DIE. failed building model") if ($?) ;
@@ -1615,6 +1680,7 @@ sub generic_sim_run
     die ("DIE. work/ not found in $model_path") if ($opt{msm_run} and ! -d "$model_path/work") ;
 	die ("DIE. work/ not found in $model_path") if ($opt{riv_run} and ! -d "$model_path/work") ;
     die ("DIE. obj_dir/ not found in $model_path") if ($opt{vlt_run} and ! -d "$model_path/obj_dir") ;
+    die ("DIE. obj_dir/ not found in $model_path") if ($opt{metro_mpi_run} and ! -d "$model_path/obj_dir") ;
 
     # pass the good trap and bad trap addresses to the testbench
     my $good_trap = "";
@@ -1754,7 +1820,7 @@ sub generic_sim_run
       $cmd .= "/lib/libmodelsimpli.so\"";
       $cmd .= " " ;
       $cmd .= join (" ", @{$opt{sim_run_args}}) ;
-      print("====================================\n$cmd\n====================================");
+      print("====================================\n$cmd\n====================================\n");
     }
 	
 if ($opt{riv_run}) {
@@ -1800,6 +1866,46 @@ if ($opt{riv_run}) {
       print("====================================\n$cmd\n====================================");
 	 } 
     }	
+#my $mpi_ov="--oversubscribe";
+my $mpi_ov=" ";
+
+ if ($opt{metro_mpi_run}) {
+  my $tile_np= $ENV{PITON_NUM_TILES};
+     if ($opt{sys} eq "metro_chipset") {
+        #remove diag.dump to avoid remote server memory overflow
+        system ("rm -rf $model_path/../../diag.dump") ; 
+        system ("rm -rf $model_path/../../diag.o") ;
+        system ("rm -rf $model_path/../../diag.exe") ;
+        
+        ####  --output-filename filename
+        $cmd .= "mpirun $mpi_ov -np 1  $model_path/obj_dir/Vmetro_chipset " ;
+        $cmd .= " " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+        $cmd .= " : $mpi_ov -np $tile_np  $model_path/../../metro_tile/rel-0.1/obj_dir/Vmetro_tile ";
+        #$cmd .= " " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+        if($ENV{PITON_EXTRA_MEMS} > 0){
+            $cmd .= " : $mpi_ov -np $ENV{PITON_EXTRA_MEMS}  $model_path/../../metro_fake_mem/rel-0.1/obj_dir/Vmetro_fake_mem ";
+            $cmd .= " " ;
+            $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+        }
+        
+      }
+      else {
+        foreach my $top_n (@{$opt{toplevel}}) {
+          $cmd .= "$model_path/obj_dir/V$top_n " ;
+        }
+        $cmd .= " " ;
+        $cmd .= join (" ", @{$opt{sim_run_args}}) ;
+      }
+      
+       #create a file containg cmd
+       open (BUILD, "> run.sh") or die ("DIE. can't open run.sh");
+       my $ff=$cmd;
+       $ff =~ s/\$DV_ROOT/$dv_root/g;
+       print BUILD "#!/bin/bash\n $ff";
+       close BUILD;      
+    }
 
     if ($opt{vlt_run}) {
       $cmd .= "$model_path/obj_dir/Vcmp_top " ;
@@ -2183,6 +2289,23 @@ sub assemble_diag
     elsif (($opt{rv32} | $opt{rv64}) and ($opt{asm_diag_name} =~ /\.c/)) { $diag_name = "diag.c" ; }
     else { $diag_name = "diag.s" ; }
 
+    #skip diag assembeling for metro_mpi as mem.image is already genrated by mpi_sims script    
+    if ($opt{metro_mpi_run} && $opt{precompiled} && (-f "$opt{asm_diag_path}/mem.image")  ){
+       push (@{$opt{sim_run_args}}, "+mem_image=$opt{asm_diag_path}/mem.image");
+       print "$prg: the mem_image has found in $opt{asm_diag_path}/mem.image. Skip diag assembeling\n";
+       `cp  $opt{asm_diag_path}/symbol.tbl ./` ;
+  		 die ("DIE. could not copy symbol.tbl ") if ($?) ; 
+       `touch diag.ev` ;
+  		 die ("DIE. could not create diag.ev") if ($?) ;
+  		 push (@{$opt{sim_run_args}}, "+lat_model=$ENV{PITON_LAT_FILE}") if(defined $ENV{PITON_LAT_FILE});
+         print @{$opt{sim_run_args}};
+       return;
+    }
+    if($opt{metro_mpi_run}){
+       push (@{$opt{sim_run_args}}, "+mem_image=./mem.image");
+       push (@{$opt{sim_run_args}}, "+lat_model=$ENV{PITON_LAT_FILE}") if(defined $ENV{PITON_LAT_FILE});
+       print @{$opt{sim_run_args}};
+    }
     # copy diagnostic to run area
     `cp $diag_full_path $diag_name` ;
     die ("DIE. unable to copy assembly diag to $ENV{PWD}") if ($?) ;
@@ -2359,6 +2482,17 @@ sub assemble_diag
     exit (0) if ($opt{midas_only}) ;
 }
 
+sub get_metro_mpi_diag_path {
+  my ($file_name,$dir,$ext) = fileparse($opt{asm_diag_name}, qr/\.[^.]*/);  
+  my $dv_root = $ENV{DV_ROOT}; 
+  my $core = 
+    ($opt{ariane}) ? "ariane" :
+    ($opt{lagarto}) ? "lagarto" :
+    ($opt{lagarto_tile}) ? "lagarto_tile" : "other"; 
+     my $piton_num_tiles=($opt{x_tiles} * $opt{y_tiles});
+     my $diags_path = "$dv_root/../build/diags/${core}_${piton_num_tiles}_${file_name}"; 	
+     return $diags_path;
+}
 ################################################################################
 # call_program - runs a program, tee's the output to a log, and returns exit
 # status
@@ -2462,6 +2596,112 @@ sub find_diag_path
   return $full_path[0] ;
 }
 
+###############################################################################
+#   Multiple MC functions
+###############################################################################
+sub get_mc_mapping {
+    my ($piton_X,$piton_Y,$indices,$mc_num,$net_conf)=@_;
+    my @mc_list = split(",",$indices);   
+    my $edge_idx = 0;
+    my @mc_map;
+    for (my $i=0; $i< $piton_X; $i++){
+        for (my $j=0; $j< $piton_Y; $j++){
+            #currentid = (i, j);
+            my $flatid = $i + ($j * $piton_X);
+            my $exists = grep( /^$flatid$/, @mc_list);
+            my $endp = $piton_X * $piton_Y;            
+            if ($net_conf ne "xbar_config" && $edge_idx < $mc_num && $exists > 0){
+                my $index =-1;
+                my $u=0;
+                foreach my $p ( @mc_list){
+                    $index =$u if ($flatid == $p);
+                    $u++;
+                } 
+                if ($i == 0 && $j != 0){ # Tile 0 west port is occupied by "offchip" connection
+                    $endp = $endp + $piton_X + $piton_X + $j;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'W','endp'=> $endp);
+                    push (@mc_map,\%h);
+                    $edge_idx += 1
+
+                }elsif ($j == 0){
+                    $endp = $endp + $i;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'N','endp'=> $endp);
+                    push (@mc_map,\%h);  
+                    $edge_idx += 1
+                
+                }elsif ($j == $piton_Y-1){ #  and i != 0
+                    $endp = $endp + $piton_X + $i;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'S','endp'=> $endp);
+                    push (@mc_map,\%h);                    
+                    $edge_idx += 1
+
+                }elsif ($i == $piton_X-1){ # and j != PITON_Y_TILES-1
+                    $endp = $endp + $piton_X + $piton_X + $piton_Y + $j;
+                    my %h=('id'=> $flatid,'x'=> $i,'y'=> $j,'n'=> 0,'p'=> 'E','endp'=> $endp);
+                    push (@mc_map,\%h);  
+                    $edge_idx += 1
+                }else{
+                    die "Fatal: $flatid is not an edge router\n";
+                }
+           } 
+         }
+    } 
+    return @mc_map;
+}
+
+sub uniq {
+  my %seen;
+  return grep { !$seen{$_}++ } @_;
+}
+
+sub get_both_xy_edge_routers_ids{
+    my ($x, $y)=@_;
+    my @edges;
+    my $i;
+    my $j;
+    $j=0;
+    for ($i=0; $i<$x; $i++){my $id= $j*$x+$i;push (@edges,$id);} # first row
+    $i=$x-1;
+    for ($j=1; $j<$y; $j++){my $id= $j*$x+$i;push (@edges,$id);} #last column
+    $j=$y-1;
+    for ($i=$x-2; $i>0; $i--){my $id= $j*$x+$i;push (@edges,$id);} # last row
+    $i=0;
+    for ($j=$y-1; $j>0; $j--){my $id= $j*$x+$i;push (@edges,$id);} #first column
+    #print join(',',@edges), "\n";
+    return uniq(@edges);
+}
+
+sub get_first_y_edge_routers_ids{
+    my ($x, $y)=@_;
+    my @edges;
+    my $i;
+    my $j;
+    $i=0;
+    for ($j=$y-1; $j>=0; $j--){my $id= $j*$x+$i;push (@edges,$id);} #first column
+    return uniq(@edges);
+}
+
+sub distribute_mc_equal_space_on_all_edges {
+    my ($x,$y,$mc)=@_;
+    my @edge_ids =get_both_xy_edge_routers_ids ($x,$y);
+    my $edges = scalar @edge_ids;
+    my $d= ($mc==0)? 0 : ($edges/$mc);
+    my $mc_num=0;
+    my $mmc =  '';
+    for (my $m=0; $m<$mc; $m++){
+        $mc_num= int ($d * $m);
+        my $mc_id = $edge_ids[$mc_num];
+        $mmc.=($m==0)?  "$mc_id" : ",$mc_id";
+    }
+    print "all_edges : @edge_ids  ; mmcs: $mmc \n";
+    return $mmc
+}
+
+sub does_verilator_suport {
+	my $flag=shift;
+	`verilator --lint-only $flag $ENV{DV_ROOT}/design/common/rtl/alarm_counter.v  2>&1`;	
+	return ($? ==0);
+}
 ################################################################################
 # parse all arguments from command line and config file
 ################################################################################
@@ -2591,6 +2831,9 @@ sub parse_args
             'vlt_build!',
             'vlt_build_args=s@',
             'vlt_run!',
+            'metro_mpi_build!',
+            'metro_mpi_build_args=s@',
+            'metro_mpi_run!',
             'num_tile=s',
             'x_tiles=s',
             'y_tiles=s',
@@ -2683,6 +2926,7 @@ sub parse_args
     $opt{msm_build} = 0 ;
 	$opt{riv_build} = 0 ;
     $opt{vlt_build} = 0 ;
+    $opt{metro_mpi_build} = 0 ;
     $opt{other_sim_build} = 0 ;
   }
 
@@ -2727,8 +2971,84 @@ sub parse_args
   $ENV{PITON_PICO_HET} = $opt{pico_het};
   $ENV{PITON_ARIANE}   = $opt{ariane};
   $ENV{PITON_RV64_PLATFORM}   = "1" if ($opt{rv64_platform});
+  $ENV{PITON_METRO_MPI}  = $opt{metro_mpi_build};
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
+  push (@{$opt{config_rtl}}, "PITON_METRO_MPI")   if ($opt{metro_mpi_build});
 
+  my @mc_map;
+  
+  $ENV{PITON_EXTRA_MEMS} =0;
+  $ENV{PITON_HBM_LAT} =0;
+  if($opt{hbm_lat}){
+  	$ENV{PITON_HBM_LAT}  = $opt{hbm_lat};
+  }
+  
+  if ($opt{multimc} eq "acme"){
+    my @ids = get_first_y_edge_routers_ids($opt{x_tiles} , $opt{y_tiles});
+    my $list=join(',',@ids);
+    $opt{multimc} = $opt{y_tiles};
+    $opt{multimc_indices}=$list;
+    print "**info: acme mode is selected.  Distribute $opt{y_tiles} MCs on all edge routers loacted at first Mesh column. MC router ids: $list.\n";
+  }
+  
+  
+  if ($opt{multimc}>0){
+      my $piton_num_tiles=($opt{x_tiles} * $opt{y_tiles});
+      my $edge_tiles = 2 * ($opt{x_tiles}-1 + $opt{y_tiles}-1);
+      if ($edge_tiles > $piton_num_tiles || $edge_tiles < 1){
+        $edge_tiles = $piton_num_tiles;
+      }
+      if($edge_tiles > $opt{multimc} ){
+          $edge_tiles =$opt{multimc};
+      }
+      if (!$opt{hbm}){
+            die  ("DIE. Could not use -multimc option without -hbm option");
+        }
+             
+        elsif ($edge_tiles > 30){
+            print "Extra $edge_tiles connections to HBM (one per edge tile) are limited to 30.\n";
+            $ENV{PITON_EXTRA_MEMS} =30;
+        }
+          else{
+            print "Extra $edge_tiles connections to HBM will be used.\n";
+            $ENV{PITON_EXTRA_MEMS} = $edge_tiles;
+        }        
+ 
+     if($opt{multimc_indices}){
+         $ENV{PITON_MC_INDICES} =$opt{multimc_indices};
+         my $str = $opt{multimc_indices};
+         my @mc_tiles=split(/,/,$str);
+         my $l = scalar (@mc_tiles);
+         if( $l != $edge_tiles ){
+             die  ("DIE. the number of tile in multimc_indices $l is not equal to the number of multimc $edge_tiles.\n");
+         }
+         my %seen;
+         foreach my $p ( @mc_tiles){
+               die  ("DIE. multiple tile number ($p) is given in multimc_indices:$str.\n") if(defined $seen{$p});
+               $seen{$p}=1;
+             die  ("DIE. $p is not a valid integer number in multimc_indices:$str.\n") if ( $p !~ /^[+-]?\d+$/);
+             die  ("DIE. The tile number $p should be smaller that total number of tiles ($piton_num_tiles).\n") if ( $p >= $piton_num_tiles);
+             my $x_p = $p % $opt{x_tiles};
+             my $y_p = ($p - $x_p) / $opt{y_tiles};
+             if($x_p!=0 && $y_p!=0 && $x_p != $opt{x_tiles}-1 && $y_p!= $opt{y_tiles}-1){
+                 die  ("DIE. The tile number $p ($x_p,$y_p) in multimc_indices is not an edge router.\n");
+             }    
+                     
+         }
+     }else{
+         my $mc_tiles=distribute_mc_equal_space_on_all_edges($opt{x_tiles},$opt{y_tiles},$ENV{PITON_EXTRA_MEMS});
+         print "**Info: No memory controller (MC) indices are given as input. Distribute MCs with equal space on all edges:$mc_tiles\n";
+         $ENV{PITON_MC_INDICES} =$mc_tiles;
+     }
+     
+     @mc_map = get_mc_mapping ($opt{x_tiles},$opt{y_tiles},$opt{multimc_indices},$ENV{PITON_EXTRA_MEMS},$ENV{PITON_NETWORK_CONFIG});
+  }
+
+
+
+
+my $mmc_num= $ENV{PITON_EXTRA_MEMS};
+my $mmc_num_tmp = ($mmc_num==0)? 1 : $mmc_num;
   my $pton_x_tiles="";
   my $pton_y_tiles="";
   my $pton_num_tiles="";
@@ -2805,7 +3125,51 @@ sub parse_args
       push(@{$opt{config_rtl}}, "OST1_PLI_SLAM_RANDOM") ;
       push(@{$opt{config_rtl}}, "OST1_PLI_MRA_VAL") ;
   }
+    my $map_file ="
+    // This file is autogenrated using sims,2  and contains the memory controller mapping information
+    #ifndef MC_TILE_CONNECT_H
+    #define  MC_TILE_CONNECT_H
 
+        #define PRONOC_T1  $pton_x_tiles
+        #define PRONOC_T2  $pton_y_tiles
+        #define PRONOC_T3  1
+        
+        #define PITON_PORT_L  0
+        #define PITON_PORT_E  1
+        #define PITON_PORT_N  2
+        #define PITON_PORT_W  3
+        #define PITON_PORT_S  4
+
+ typedef struct \{
+               unsigned int x;
+               unsigned int y;
+               unsigned int p;
+               unsigned int id;
+               unsigned int endp;
+        \} mc_map_t;    
+
+    #define  MCS_NUM  $mmc_num
+
+    mc_map_t mc_map\[$mmc_num_tmp\]=\{ 
+";    
+    my $f=0;
+    foreach my $k (@mc_map){
+        my $ax = $k->{'x'};
+        my $ay = $k->{'y'}; 
+        my $ap = $k->{'p'};
+        my $id = $k->{'id'}; 
+        my $endp = $k->{'endp'};
+        $map_file .=",\n" if ($f!=0);
+        $f=1; 
+        $map_file .=" \{ $ax, $ay, PITON_PORT_$ap, $id, $endp \}"
+   }    
+    $map_file .="\{ 0,0,0,0,0\}"  if($f==0);    
+       
+    $map_file .=  "\};\n #endif \n"; 
+    my $mfile=$ENV{DV_ROOT} . "/tools/verilator/mcs_map_info.tmp.h";
+    open( FFF, ">$mfile" ) or die "Can't open '$map_file': $!\n";
+    print  FFF  $map_file;
+    close(FFF); 
 }
 
 ################################################################################
@@ -2902,6 +3266,7 @@ OPENPITON ARGUMENTS
             in the x dimension and Y tiles in the y dimension. If
             -x_tiles and -y_tiles is not specified, the default is
             X=1 and Y=1. The maximum value for both X and Y is 1024.
+    -hbm enables HBM related definitions.
 
     -ed_enable
             enable Execution Drafting in each core.
@@ -3069,6 +3434,8 @@ VERILOG RUNTIME RELATED
     -pre_process_cmd=COMMAND
            pre processing command to be run before vcs (simv) run starts
 
+     -metro_mpi_run
+           run the metro_mpi simulation. 
 MIDAS
 
 midas is the diag assembler

@@ -52,9 +52,9 @@ module monitor(/*AUTOARG*/
 	err_f  = 1;
 	bad    = 0;
 `ifndef VERILATOR
-	max_cycle = 30000;
+	max_cycle = 6000000;
 `else // ifndef VERILATOR
-	max_cycle = 1500000;
+	max_cycle = 100000000;
 `endif // ifndef VERILATOR
 	cycle  = 0;
 	if($value$plusargs("wait_cycle_to_kill=%d", number))$display("wait cycles = %d", number);
@@ -1281,12 +1281,16 @@ module monitor(/*AUTOARG*/
 
 `endif // ifdef GATE_SIM
 
+`ifndef METRO_CHIPSET
+`ifndef METRO_TILE
 `ifdef RTL_TILE0
    //monitor good trap and bad trap.
    pc_cmp pc_cmp(clk, rst_l); // Sumti - Shifting it back to clk, sas race with +fast_boot.
 //dump cache
 `endif // ifdef RTL_TILE0
 
+`endif
+`endif
 	// dump_cache dump_cache();
 
 	// Don't include this section if compiling for DRAM SAT Environment

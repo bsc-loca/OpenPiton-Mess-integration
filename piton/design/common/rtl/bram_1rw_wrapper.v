@@ -176,4 +176,23 @@ end
 `endif
 
 
+//`define REPORT_CACHE_ST
+
+`ifdef REPORT_CACHE_ST
+
+
+	
+cache_st #(
+		.NAME(NAME),
+		.Aw(ADDR_WIDTH)
+	)
+	st
+	(
+		.addr(A),
+		.wr_en(write_en),
+		.rd_en(read_en),
+		.clk (MEMCLK)
+	);
+
+`endif
 endmodule

@@ -474,6 +474,15 @@ wire                         offchip_processor_noc3_valid;
 wire [`NOC_DATA_WIDTH-1:0]   offchip_processor_noc3_data;
 wire                         offchip_processor_noc3_yummy;
 
+`ifdef PITON_EXTRA_MEMS
+  wire [`PITON_EXTRA_MEMS * `NOC_DATA_WIDTH -1:0] processor_mcx_noc2_data;
+  wire [`PITON_EXTRA_MEMS-1:0]                    processor_mcx_noc2_valid;
+  wire [`PITON_EXTRA_MEMS-1:0]                    processor_mcx_noc2_yummy;
+
+  wire [`PITON_EXTRA_MEMS * `NOC_DATA_WIDTH -1:0] mcx_processor_noc3_data;
+  wire [`PITON_EXTRA_MEMS-1:0]                    mcx_processor_noc3_valid;
+  wire [`PITON_EXTRA_MEMS-1:0]                    mcx_processor_noc3_yummy;
+`endif
 // Passthru<->chipset source synchronous differential clocks
 `ifdef PITON_CHIPSET_CLKS_GEN
 wire                chipset_passthru_clk_p;

@@ -57,6 +57,19 @@ from pyhplib import *
 print("`define PITON_NUM_TILES %d" % PITON_NUM_TILES)
 print("`define PITON_X_TILES %d"   % PITON_X_TILES)
 print("`define PITON_Y_TILES %d"   % PITON_Y_TILES)
+
+
+if PITON_EXTRA_MEMS > 0:
+  print("`define PITON_EXTRA_MEMS %d" % PITON_EXTRA_MEMS)
+
+if PITON_HBM_LAT > 0:
+  print("`define PITON_HBM_LAT %d" % PITON_HBM_LAT)  
+  print("`define PITON_LAT_MODULE ")  
+
+if PITON_LAT_FILE != "-1":
+  print("`define PITON_LAT_FILE \"%s\"" % PITON_LAT_FILE)
+  print("`define PITON_LAT_MODULE ")  
+  print("`define PITON_LAT_FREQ  1500") 
 %>
 
 // NoC interface

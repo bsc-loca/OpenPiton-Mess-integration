@@ -47,6 +47,10 @@ reg [5:0] pcx_interrupt_vector;
 
 <%
     from pyhplib import *
+    if os.environ['PITON_METRO_MPI'] == '1':
+        LOOP_NUM = 1
+    else :
+        LOOP_NUM = PITON_NUM_TILES
 %>
 
 task decode_predecode_reqtype;
@@ -1323,7 +1327,7 @@ end
 //CORE0 END
 '''
 
-for i in range (PITON_NUM_TILES):
+for i in range (LOOP_NUM):
     text2 = text;
     text2 = text2.replace("L15_PIPE0", "L15_PIPE" + repr(i));
     text2 = text2.replace("RTL_SPARC0", "RTL_SPARC" + repr(i));
