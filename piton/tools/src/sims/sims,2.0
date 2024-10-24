@@ -1868,8 +1868,7 @@ if ($opt{riv_run}) {
     }	
 
 
-#my $mpi_ov="--oversubscribe";
-my $mpi_ov=" ";
+my $mpi_ov=( defined $ENV{MPI_OVERSUBSCRIBE})? "--oversubscribe": " ";
 
  if ($opt{metro_mpi_run}) {
   my $tile_np= $ENV{PITON_NUM_TILES};
