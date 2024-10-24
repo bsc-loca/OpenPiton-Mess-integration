@@ -101,6 +101,7 @@ ucli.key
 *.h.tmp
 *.tmp.v
 *.tmp.h
+*.tmp.sv
 
 # Ignore generated .pyc files (specifically for pyhplib)
 *.pyc

@@ -819,6 +819,19 @@ chip chip(
     .offchip_processor_noc3_data    (offchip_processor_noc3_data),
     .offchip_processor_noc3_yummy   (offchip_processor_noc3_yummy)
 `endif // endif PITON_NO_CHIP_BRIDGE
+
+`ifdef PITON_EXTRA_MEMS
+    ,
+    .processor_mcx_noc2_data (processor_mcx_noc2_data),
+    .processor_mcx_noc2_valid(processor_mcx_noc2_valid),
+    .processor_mcx_noc2_yummy(processor_mcx_noc2_yummy),
+
+    .mcx_processor_noc3_data (mcx_processor_noc3_data),
+    .mcx_processor_noc3_valid(mcx_processor_noc3_valid),
+    .mcx_processor_noc3_yummy(mcx_processor_noc3_yummy)
+  `endif
+
+
 `ifdef PITON_RV64_PLATFORM
 `ifdef PITON_RV64_DEBUGUNIT
     // Debug
@@ -1050,6 +1063,16 @@ chipset chipset(
     .chip_intf_channel(chip_intf_channel),
     .chip_intf_credit_back(chip_intf_credit_back),
 `endif // endif PITON_NO_CHIP_BRIDGE PITON_SYS_INC_PASSTHRU
+
+  `ifdef PITON_EXTRA_MEMS
+    .processor_mcx_noc2_data (processor_mcx_noc2_data),
+    .processor_mcx_noc2_valid(processor_mcx_noc2_valid),
+    .processor_mcx_noc2_yummy(processor_mcx_noc2_yummy),
+
+    .mcx_processor_noc3_data (mcx_processor_noc3_data),
+    .mcx_processor_noc3_valid(mcx_processor_noc3_valid),
+    .mcx_processor_noc3_yummy(mcx_processor_noc3_yummy),
+  `endif
 
     // DRAM and I/O interfaces
 `ifndef PITONSYS_NO_MC
