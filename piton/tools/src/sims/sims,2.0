@@ -332,7 +332,7 @@ GetOptions (\%opt,
             'parallel!',
             'ost1!',
             'ariane!',           
-            'hbm_lat=i',
+            'hbm_lat=s',
             'multimc=s',
             'multimc_indices=s',
             'metro_mpi_build!',
@@ -1866,6 +1866,8 @@ if ($opt{riv_run}) {
       print("====================================\n$cmd\n====================================");
 	 } 
     }	
+
+
 #my $mpi_ov="--oversubscribe";
 my $mpi_ov=" ";
 
@@ -2975,12 +2977,18 @@ sub parse_args
   push (@{$opt{config_rtl}}, "PITON_PICO_HET") if ($opt{pico_het});
   push (@{$opt{config_rtl}}, "PITON_METRO_MPI")   if ($opt{metro_mpi_build});
 
-  my @mc_map;
-  
+  my @mc_map;  
   $ENV{PITON_EXTRA_MEMS} =0;
+  if( !defined $opt{hbm_lat}){
   $ENV{PITON_HBM_LAT} =0;
-  if($opt{hbm_lat}){
+  }elsif( $opt{hbm_lat} =~ /^[+-]?\d+$/){ #it is intiger
   	$ENV{PITON_HBM_LAT}  = $opt{hbm_lat};
+  }elsif(-d "$opt{hbm_lat}" ){ #Latency taken from a realstic latency  model
+  	$ENV{PITON_LAT_FILE} = $opt{hbm_lat};    
+  }elsif(-d "$ENV{DV_ROOT}/$opt{hbm_lat}" ){ #Latency taken from a realstic latency  model
+  	$ENV{PITON_LAT_FILE} = "$ENV{DV_ROOT}/$opt{hbm_lat}";     
+  }else{
+  	die("Error $opt{hbm_lat} is an invalid value for hbm_lat. It should be an intiger or the path to realstic delay model\n");
   }
   
   if ($opt{multimc} eq "acme"){

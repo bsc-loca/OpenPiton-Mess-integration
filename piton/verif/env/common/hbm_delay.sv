@@ -492,13 +492,6 @@ module  hbm_thermo_arbiter #(
 endmodule
 
 
-
-
-
-
-
-
-
 /******************
 hbm_delay_fwft_fifo_bram
  ********************/
@@ -803,11 +796,69 @@ module hbm_register_reset_init
         
 endmodule
 
+/***************
+   tail_hdr_detect
+****************/
 
+module tail_hdr_detect #(
+    parameter FLIT_WIDTH=64
+)(
+    reset,
+    clk,
+    flit_in,
+    valid,
+    ready,
+    is_tail,
+    is_header
+);
+    input reset,clk;
+    input valid,ready;
+    input [FLIT_WIDTH-1 : 0] flit_in;
+    output is_tail, is_header;
 
+    localparam
+        CHANEL_WORLD_NUM = FLIT_WIDTH/64;
 
+    localparam  [1:0]
+        HEADER = 1,
+        BODY   = 2;
+    reg [2:0] flit_type,flit_type_next;
+    wire [`MSG_LENGTH_WIDTH-1       :0] length_in      =  flit_in [ `MSG_LENGTH ];
+    reg  [`MSG_LENGTH_WIDTH-1       :0] remain, remain_next;
 
+    always @ (*) begin
+        remain_next = remain;
+        flit_type_next = flit_type;
+        if(valid & ready) begin
+            case(flit_type)
+            HEADER: begin
+                if (length_in >= CHANEL_WORLD_NUM ) begin
+                        flit_type_next = BODY;
+                        remain_next = length_in  - CHANEL_WORLD_NUM;                  
+                end
+            end //HEADER
+            BODY: begin
+                if(remain < CHANEL_WORLD_NUM) begin
+                        flit_type_next = HEADER;   
+                end else if (remain >= CHANEL_WORLD_NUM ) begin
+                        remain_next = remain  - CHANEL_WORLD_NUM;  
+                end
+            end //BODY
+            endcase
+        end
+    end//always
 
+    always @ (posedge clk) begin
+        if (reset)  begin
+            remain <= {`MSG_LENGTH_WIDTH{1'b0}};
+            flit_type <=HEADER;
+        end else begin
+            remain <= remain_next;
+            flit_type <= flit_type_next;
+        end
+    end
 
+    assign is_tail = (flit_type == HEADER)? (length_in < CHANEL_WORLD_NUM) : (remain < CHANEL_WORLD_NUM);
+    assign is_header = (flit_type == HEADER);
 
-
+endmodule
