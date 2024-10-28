@@ -326,7 +326,7 @@ $cmd
 
 $sbatch
 
-if [[ $CONFIG_SELECTION -eq 1 ]]; then
+if [[ \$MPI_JOB_ALLOCATION_MODE -eq 1 ]]; then
 #SBATCH --cpus-per-task=$core_num
 #SBATCH --ntasks=1
 else
