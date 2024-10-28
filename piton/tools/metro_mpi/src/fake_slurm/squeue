@@ -1,0 +1,165 @@
+#!/bin/bash
+
+#!/bin/bash
+SCRPT_FULL_PATH=$(realpath ${BASH_SOURCE[0]})
+SCRPT_DIR_PATH=$(dirname $SCRPT_FULL_PATH)
+WORK_DIR="$SCRPT_DIR_PATH/.slurm"
+PENDING="$WORK_DIR/pending"
+RUNNING="$WORK_DIR/running"
+
+source "$SCRPT_DIR_PATH/sbatch_arg.sh"
+
+#make job dirs if not existed
+mkdir -p $PENDING
+mkdir -p $RUNNING
+
+convert_time () {
+    time_in_seconds=$1  # Replace with your time in seconds
+
+    # Calculate hours, minutes, and seconds
+    hours=$((time_in_seconds / 3600))
+    minutes=$(( (time_in_seconds % 3600) / 60 ))
+    seconds=$((time_in_seconds % 60))
+
+    # Format the time as hh:mm:ss
+    if [[ $hours -gt 0 ]]; then
+        formatted_time=$(printf "%02d:%02d:%02d" $hours $minutes $seconds)
+    else
+        formatted_time=$(printf "   %02d:%02d" $minutes $seconds)
+    fi
+
+    echo "$formatted_time"
+}
+
+help(){
+
+echo "./$0 [options]
+      
+      [options]
+      -h show this help 
+      -u <uname>  : Enter the user name 
+      -j <job id>    : number of parallel jobs passed to makefile. default is 16.  
+      "      
+      exit 0;
+
+}
+
+i=-1
+display_running_job () {
+    local job_file=$1
+    local jobid=$(basename "$job_file")
+  
+    TIMESTAMP=$(date +%s)
+    ((i+=1))
+    birth_time=$(stat -c %Y "$job_file") 
+    ((run_time=TIMESTAMP-birth_time))
+    # Ensure that run_time is not negative
+    if ((run_time < 0)); then
+        run_time=0
+    fi
+    tt=$(convert_time $run_time)
+    get_exclusive_access
+    if [ ! -e "$job_file" ]; then
+        # File does not exist anymore. No need to echo job status, just return.
+        unlock
+        return
+    fi
+    jj="$(cat "$job_file")"
+    unlock
+    process_sbatch_job_file  "$jj"
+    first_eight_chars=$(echo "$jobname" | cut -c 1-8)
+    echo "          $jobid   sequentia  $first_eight_chars  $UNAME  R  $tt     1  FAKE_NODE$i"
+}
+
+
+display_pending_job () {
+    local job_file=$1
+    local jobid=$(basename "$job_file")
+    get_exclusive_access
+    if [ ! -e "$job_file" ]; then
+        # File does not exist anymore. No need to echo job status, just return.
+        unlock
+        return
+    fi
+    jj="$(cat "$job_file")"
+    unlock
+    process_sbatch_job_file  "$jj"
+    first_eight_chars=$(echo "$jobname" | cut -c 1-8)
+    echo "          $jobid   sequentia  $first_eight_chars  $UNAME  PD    00:00     1  MAX_JOB_REACHED"
+}
+
+
+while getopts "h?u:cpj:v:m:" opt; do
+  case "$opt" in
+    h|\?)
+      help
+      exit 0
+      ;;
+    u) UNAME=$OPTARG
+      ;;   
+    j) 
+    JOBID="${OPTARG}"   
+  esac
+done
+shift $((OPTIND-1))
+[ "${1:-}" = "--" ] && shift
+
+
+if [ -z "$UNAME" ]; then
+    UNAME=`whoami`
+fi
+# Print the arrays (for demonstration)
+#echo "PIDs: ${pids[@]}"
+
+echo "             JOBID   PARTITION      NAME     USER  ST     TIME NODES  NODELIST(REASON)"
+
+
+if [ ! -z "$JOBID" ]; then
+    #check running list
+    if [ -e "$RUNNING/$JOBID" ]; then
+         display_running_job "$RUNNING/$JOBID"       
+
+    fi
+    if [ -e "$PENDING/$JOBID" ]; then
+        display_pending_job "$PENDING/$JOBID"     
+    fi
+
+    exit
+fi
+
+
+
+get_file_list $RUNNING
+#display running jobs
+for job in "${jobs[@]}"; do
+        
+       display_running_job "$RUNNING/$job"            
+done
+
+
+
+
+get_file_list $PENDING
+#display pending jobs
+for job in "${jobs[@]}"; do
+       display_pending_job "$PENDING/$job"     
+done
+
+
+
+
+
+sleep 1
+
+exit
+
+
+
+
+
+
+
+
+
+
+

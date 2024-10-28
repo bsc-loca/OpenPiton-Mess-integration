@@ -109,10 +109,6 @@ void tick() {
 
 
 void  mpi_work_opt_chipset(){
-   // good_end|=top->good_end;
-   // bad_end |=top->bad_end;
-   // test_end = test_end or (top->good_end==1 or top->bad_end==1);
-   
     mpi_send_chan(&top->noc_chanel_out, sizeof(top->noc_chanel_out),  dest, mpi_rank, ALL_NOC);
     mpi_receive_chan(&top->noc_chanel_in, sizeof(top->noc_chanel_in), dest, ALL_NOC);
 }
@@ -325,8 +321,6 @@ int main(int argc, char **argv, char **env) {
 
     reset_and_init(mem_image);
     smart_max = top->smart_max;
-
-    top->test_ena = 1;
 
     //bool test_exit = false;
     uint64_t checkTestEnd=TRAP_INITIAL_CHECK_DELAY;

@@ -1,0 +1,51 @@
+#!/bin/bash
+SCRPT_FULL_PATH=$(realpath ${BASH_SOURCE[0]})
+SCRPT_DIR_PATH=$(dirname $SCRPT_FULL_PATH)
+WORK_DIR="$SCRPT_DIR_PATH/.slurm"
+PENDING="$WORK_DIR/pending"
+RUNNING="$WORK_DIR/running"
+
+source "$SCRPT_DIR_PATH/sbatch_arg.sh"
+source "$SCRPT_DIR_PATH/config"
+
+#make job dirs if not existed
+mkdir -p $PENDING
+mkdir -p $RUNNING
+
+
+# Check for the input file argument
+if [ $# -ne 1 ]; then
+    echo "Usage: $0 <input_file>"
+    exit 1
+fi
+
+input_file="$1"
+
+# Run the slurm_engin it is not running
+engin=$(ps aux | grep "slurm_engin.sh" | grep -v grep)
+if [ -z "$engin" ] ; then
+   nohup bash $SCRPT_DIR_PATH/slurm_engin.sh > "$WORK_DIR/slurm.log" 2>"$WORK_DIR/slurm.error" &
+fi
+
+#Create a unique job ID
+MY_PID=$$
+current_time_minutes=$(date +'%H%M')
+OFSET="${current_time_minutes: -3}"
+JOBID="$MY_PID$OFSET"
+
+#save the job in pending dir
+current_dir="$(pwd)"
+
+get_exclusive_access
+echo "$current_dir" >> $PENDING/$JOBID
+echo $input_file >> $PENDING/$JOBID
+unlock
+
+sleep $SLEEP_SBATCH
+echo "Submitted batch job $JOBID"
+
+
+
+
+
+

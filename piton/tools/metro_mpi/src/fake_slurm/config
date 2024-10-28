@@ -1,0 +1,5 @@
+#!/bin/bash
+
+MAX_RUN=2               # The maximum sbatch that can be run in parallel
+SLEEP_SBATCH=5          # Sleep time in second after accepting each SBATCH sbatch job
+SLURM_CHECK_PERIOD=10   # Check the jobs status every SLURM_CHECK_PERIOD seconds

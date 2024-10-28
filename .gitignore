@@ -113,3 +113,8 @@ ucli.key
 cscope.*
 tags
 *.bak
+
+
+piton/tools/metro_mpi/benchmark/app-scalar/*/bin/*
+piton/tools/metro_mpi/benchmark/app-scalar/*/dataset.h
+

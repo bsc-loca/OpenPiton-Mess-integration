@@ -181,7 +181,7 @@ end
 
 always @ *
 begin
-    mem_header_in = {buf_in_mem_f[2], buf_in_mem_f[1], buf_in_mem_f[0]};
+     mem_header_in = (mem_valid_in)? {buf_in_mem_f[2], buf_in_mem_f[1], buf_in_mem_f[0]} : {`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0,`NOC_DATA_WIDTH'd0} ;
 end
 
 //Memory read/write

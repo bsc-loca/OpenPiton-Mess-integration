@@ -34,32 +34,6 @@
     from pyhplib import *
 %>
 
-`ifdef PITON_DPI
-import "DPI-C" function longint read_64b_call (input longint addr);
-import "DPI-C" function void write_64b_call (input longint addr, input longint data);
-import "DPI-C" function int drive_iob ();
-import "DPI-C" function int get_cpx_word (int index);
-import "DPI-C" function void report_pc (longint thread_pc);
-import "DPI-C" function void init_jbus_model_call(string str, int oram);
-
-`ifndef VERILATOR
-// MPI Yummy functions
-import "DPI-C" function void initialize();
-import "DPI-C" function void finalize();
-import "DPI-C" function int getRank();
-import "DPI-C" function int getSize();
-
-import "DPI-C" function void mpi_send_yummy(input byte unsigned message, input int dest, input int rank, input int flag);
-import "DPI-C" function byte unsigned mpi_receive_yummy(input int origin, input int flag);
-
-import "DPI-C" function longint unsigned mpi_receive_data(input int origin, output byte unsigned valid, input int flag);
-import "DPI-C" function void mpi_send_data(input longint unsigned data, input byte unsigned valid, input int dest, input int rank, input int flag);
-
-import "DPI-C" function void barrier();
-//add metro_stuff
-`endif // ifndef VERILATOR
-`endif // ifdef PITON_DPI
-
 
 
 `timescale 1ps/1ps

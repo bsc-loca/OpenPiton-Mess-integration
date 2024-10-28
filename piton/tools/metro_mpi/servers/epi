@@ -1,0 +1,29 @@
+#provide your username in the server as UNAME value 
+$glob = bless( {              
+                
+    'SERVER' => {
+        'UNAMES' => 'epi3,epi2,epi1',
+        'UNAME' => 'epi3',
+        'SIMULATORS'=>"Questasim,Verilator",
+        'SHELL'=> 'bash',                                  
+    },
+                           	
+         
+    'VERILATOR'=> {
+       'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012",    	
+       'DEFAULT'  =>'4.104',
+       'LOCAL_VER' => '4.104',
+    },
+        
+        
+    'SBATCHS_EN'=> [1,2,3,5],                       
+    'SBATCH' => {
+        '1' => 'source /eda/env.sh',  
+        '2' => 'export MODELSIM_HOME=~/MODELSIM_HOME',  
+        '3' => 'export RISCV=/apps/riscv-gnu-toolchain/rvv-1.0.0/',
+        '4' => 'export RISCV=/apps/riscv-gnu-toolchain/rvv-0.7.1/',
+        '5' => 'source ../../../../piton/tools/metro_mpi/src/Questasim/Questa_Starter_21.sh',
+          
+    },
+               
+}, 'GUI' );

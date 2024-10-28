@@ -1,0 +1,18 @@
+#!/bin/bash
+
+TESTNAME=$1
+RISCV=$2
+
+
+
+$RISCV/bin/riscv64-unknown-elf-objcopy -I elf64-littleriscv -O binary $TESTNAME $TESTNAME.o
+
+du $TESTNAME.o -b | awk '{print(128 - ($1 % 128));}' | xargs -t -ISIZE truncate $TESTNAME.o -s +SIZE 2> /dev/null
+printf "\n@0000000080000000\t// Section '.RED_SEC', segment 'text'\n" >mem.image
+xxd -g 8 -c 32 $TESTNAME.o | awk '{printf("%s %s %s %s\n", $2, $3, $4, $5);}' >> mem.image
+
+#create symbol.tbl
+$RISCV/bin/riscv64-unknown-elf-objdump -d $TESTNAME | grep "<pass>:" | awk '{printf("good_trap %s X %s\n", $1, $1);}' >symbol.tbl
+$RISCV/bin/riscv64-unknown-elf-objdump -d $TESTNAME | grep "<fail>:" | awk '{printf("bad_trap %s X %s\n", $1, $1);}' >>symbol.tbl
+
+rm $TESTNAME.o

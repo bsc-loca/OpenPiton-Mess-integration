@@ -121,6 +121,21 @@ string get_mem_image_full_path (int argc, char **argv){
 }
 
 
+string get_lat_model_full_path (int argc, char **argv){
+	vector<string> args(argv + 1, argv + argc);
+	vector<string>::iterator tail_args = args.end();
+	string path = "./";
+	for(vector<string>::iterator it = args.begin(); it != args.end(); ++it) 
+	{
+	    if(it->find("+lat_model=") == 0) {
+	       path=it->substr(strlen("+lat_model="));
+	    //   std::cout << "*******lat model*********************" << path << "****************";
+	    }   
+	}
+    
+	return path;
+}
+
 vector<uint64_t> get_traps (int argc, char **argv,bool type){ 
     vector<string> args(argv + 1, argv + argc);
 	vector<string>::iterator tail_args = args.end();

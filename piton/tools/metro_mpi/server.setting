@@ -1,0 +1,58 @@
+#provide your username in the server as UNAME value 
+$glob = bless( {              
+                
+    'SERVER' => {
+        'UNAMES' =>  'mn5',  
+        'UNAME' => 'mn5',  
+        'QUEUES' => 'gp_debug,gp_bsccs',  
+        'BUILD_QUEUE' => 'gp_debug',
+        'RUN_QUEUE'   => 'gp_debug', 
+        'RUN_TIME'   => '1:59:00',
+        'BUILD_TIME'   => '00:20:00',
+        'MAX_CORE_PER_NODE' => '112',
+        'SIMULATORS'=>"Metro-MPI",
+        'SHELL'=> 'sbatch',
+                                     
+    }, 	
+   
+      
+    'VERILATOR'=> {
+       'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012",    	
+       'DEFAULT'  =>'4.104',
+       'LOCAL_VER' => '4.104',
+    },
+       
+    'SBATCHS_EN'=> [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],                         
+    'SBATCH' => {
+        '1' => '#SBATCH --account=bsc18',
+        '2' => '#SBATCH --exclusive',  
+        '3' => 'module purge', 
+        '4' => 'module load gcc/13.2.0',   
+        '5' => 'module load intel/2023.2.0',
+        '6' => 'module load impi/2021.9.0',
+        '7' => 'module load oneapi/2023.2.0',
+        '8' => 'unset I_MPI_PMI_LIBRARY',
+        '9' => 'export I_MPI_JOB_RESPECT_PROCESS_PLACEMENT=0',
+        '10'=> 'export I_MPI_CXX=icpx',
+        '11'=> 'export MPICH_CXX=icpx',
+        '12'=> 'export CC=gcc; export  CXX=g++',        
+        '13'=> 'export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}', 
+        '14'=> 'export RISCV=$HOME/scratch/`whoami`/riscv_install_13_2',
+        '15'=> 'export PATH=$PATH:$HOME/scratch/`whoami`/lib/help2man/bin',
+        '16'=> 'MPI_JOB_ALLOCATION_MODE=1'
+                 
+    },
+    #  This setting depends on how MPI jobs (n number of jobs) can be run in parallel on your server
+    #  Set MPI_JOB_ALLOCATION_MODE=1 to allocate n tasks with one CPU per task.    
+    #  Set MPI_JOB_ALLOCATION_MODE=2 to allocate a single task with n CPUs. 
+         
+               
+}, 'GUI' );
+
+
+ 
+ 
+
+
+ 
+

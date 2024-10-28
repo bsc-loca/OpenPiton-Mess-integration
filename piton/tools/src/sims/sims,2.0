@@ -241,6 +241,7 @@ Getopt::Long::Configure ('no_auto_abbrev') ;
         'metro_mpi_build' => 0,    
         'metro_mpi_run' => 0,
         'metro_mpi_build_args' => [],
+        'metro_mpi_build_config' =>"",
         'version' => 0,
         'vfile' => [],
         'mem_init_py' => ""
@@ -337,6 +338,7 @@ GetOptions (\%opt,
             'multimc_indices=s',
             'metro_mpi_build!',
             'metro_mpi_run!',
+            'metro_mpi_build_config=s',
             'pico!',
             'pico_het!',
             'sparcv9!',
@@ -360,6 +362,8 @@ GetOptions (\%opt,
 die ("DIE. -ariane and -pico/-pico_het cannot be set simultaneously") if ($opt{ariane} && ($opt{pico} || $opt{pico_het})) ;
 die ("DIE. -pico and -pico_het cannot both be set") if ($opt{pico} && $opt{pico_het}) ;
 
+my $mpi_sys=$opt{'metro_mpi_build_config'};
+metro_mpi_conf_gen($mpi_sys,$opt{sys})if (length $mpi_sys);  
 # Setting ost1 by default. This works better than default to 1
 # for heterogeneous-ISA stuff
 if (!$opt{pico} && !$opt{ariane}) {
@@ -1112,6 +1116,7 @@ sub gen_config
   print OCONF "`timescale 1ps/1ps\n" ;
 
   foreach my $unit (@{$opt{config_rtl}}) {
+    $unit =~ tr/"//d;               # Remove " to allow preprocessing macros: config_rtl="ADDR_SIZE 50"
     print OCONF "`define $unit\n";
   }
 
@@ -1564,12 +1569,11 @@ sub generic_sim_build
       $build_cmd .= "-CFLAGS -DVERILATOR " ;
       $build_cmd .= "-CFLAGS -lstdc++ " ;
       $build_cmd .= "-CFLAGS -I$dv_root/tools/verilator " ;
-      $build_cmd .= "-CFLAGS -I$dv_root/design/chip/tile/vas_tile_core/konata/src/models/cxx " ;
-        if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset" || $opt{sys} eq "metro_fake_mem") {        
+      $build_cmd .= "-CFLAGS -I$dv_root/design/chip/tile/vas_tile_core/konata/src/models/cxx " ;               
         $build_cmd .= "-CFLAGS -DX_TILES=$opt{x_tiles} " ;
         $build_cmd .= "-CFLAGS -DY_TILES=$opt{y_tiles} " ;
       }    
-    }
+   
     if ($opt{vlt_build}) {
       $build_cmd = "verilator -cc " ;
       $build_cmd .= "-exe $dv_root/tools/verilator/my_top.cpp " ;
@@ -2117,6 +2121,11 @@ sub get_config
 
   my ($body) = ($sims_config_file =~ /<\s*$sys_name\s*>\s+(.*?)<\s*\/$sys_name\s*>/ogis) ;
 
+  if (!defined $body ){
+      if ($opt{sys} eq "metro_tile" || $opt{sys} eq "metro_chipset" || $opt{sys} eq "metro_fake_mem") {  
+         die "DIE. could not find $sys_name in $sims_config. You need to run sims with metro_mpi_build_config=[sys_name] e.g: metro_mpi_build_config=manycore to autogenerate $sys_name.config"  ;
+      }
+  } 
   die "DIE. could not find $sys_name in $sims_config" if (!defined $body) ;
 
   # Add OS/CPU specific configuration
@@ -2703,6 +2712,116 @@ sub does_verilator_suport {
 	`verilator --lint-only $flag $ENV{DV_ROOT}/design/common/rtl/alarm_counter.v  2>&1`;	
 	return ($? ==0);
 }
+sub metro_mpi_conf_gen {
+  my $sys = shift;
+  my $mpi_sys = shift;
+  my $METRO_DEF = ($mpi_sys eq "metro_tile") ? "METRO_TILE" : "METRO_CHIPSET";
+  my $orig_sys="$ENV{DV_ROOT}/tools/src/sims/$sys.config";
+  my $config_out="$ENV{DV_ROOT}/tools/src/sims/${mpi_sys}.config";
+  my @to_be_removed=(
+    "$sys.flist",
+    "Flist.pll",
+    "Flist.jtag",
+    #"Flist.dmbr",
+    "Flist.system",
+    "SIM_COMMIT_LOG",
+    "simulator/reference",
+    "lagarto_ox/simulator/models/filelist.f",
+    "vcs_build_args",
+
+  );
+  my %to_be_added=(
+    "Flist.l15" => [
+      "    -flist=\$DV_ROOT/verif/env/metro_tile/metro_tile.flist",
+      "    -flist=\$DV_ROOT/verif/env/common/fake_mem_ctrl.flist"
+    ],  
+    
+    "Flist.include" => [
+      "    -config_rtl=$METRO_DEF",
+      "    -config_rtl=PITON_NO_CHIP_BRIDGE",
+      "    -config_rtl=PITON_NO_JTAG",
+      "    -config_rtl=SYNTHESIZABLE_BRAM",
+      "    -config_rtl=REPORT_CACHE_ST",
+      "    -config_rtl=\"EXTERNAL_HPM_EVENT_NUM 10\"",
+      "    -metro_mpi_build_args=-DSYNC_MUX",
+      "    -metro_mpi_build_args=\"\$DV_ROOT/tools/verilator/metro_mpi.cpp\"",
+      "    -metro_mpi_build_args=\"-CFLAGS -I\$DV_ROOT/tools/pli/iop\"",
+      "    -config_rtl=PITON_DPI", 
+      "    -sim_build_args=\"-CFLAGS -DPITON_DPI\"",
+      "    -sim_build_args=\"\$DV_ROOT/tools/pli/iop/b_ary.c\"",
+      "    -sim_build_args=\"\$DV_ROOT/tools/pli/iop/iob_main.cc\"",
+      "    -sim_build_args=\"\$DV_ROOT/tools/pli/iop/bw_lib.c\"",
+      "    -sim_build_args=\"\$DV_ROOT/tools/pli/iop/iob.cc\"",
+      "    -sim_build_args=\"\$DV_ROOT/tools/pli/iop/cpx.cc\"",
+      "    -sim_build_args=\"\$DV_ROOT/tools/pli/iop/pcx.cc\"",
+      "    -metro_mpi_build_args=\"\$DV_ROOT/tools/pli/Realistic_lat/bw_lat_mem_ctrl.cc\"",
+      "    -metro_mpi_build_args=\"\$DV_ROOT/tools/pli/Realistic_lat/lat.cc\"",
+      "    -metro_mpi_build_args=\"-CFLAGS -I\$DV_ROOT/tools/pli/Realistic_lat\"",
+    ],
+  );
+
+  $to_be_added{"fake_mem_ctrl.flist"} =[
+      "    -flist=\$DV_ROOT/verif/env/metro_chipset/metro_chipset.flist",
+      "    -flist=\$DV_ROOT/verif/env/metro_chipset/metro_fake_mem.flist"
+    ] if (($mpi_sys ne "metro_tile")); 
+
+  my %to_be_replaced=(
+     "<$sys>"=>"<${mpi_sys}>",
+     "</$sys>"=>"</${mpi_sys}>",
+     "-model="=>"    -model=${mpi_sys}",
+     "-toplevel="=>"    -toplevel=${mpi_sys}",
+  );
+  
+  open my $in, '<', $orig_sys or die "Cannot open $orig_sys: $!";
+  open my $out, '>', $config_out or die "Cannot open $config_out: $!";
+  print $out "// This file was autogenerated by $prg from $orig_sys.\n";
+  print $out "// Note: Any modifications to this file may be overwritten.\n";
+  my %added_keys;  # to keep track of which keys have been added
+  
+  while (my $line = <$in>) {
+    chomp $line;
+
+    # Check if the line should be removed
+    my $remove_line = 0;
+    foreach my $pattern (@to_be_removed) {
+      if ($line =~ /\Q$pattern\E/) {
+        $remove_line = 1;
+        last;
+      }
+    }
+    next if $remove_line;  # skip line if it should be removed
+
+    # Check if the line should be replaced
+    my $replaced = 0;
+    foreach my $key (keys %to_be_replaced) {
+      if ($line =~ /\Q$key\E/) {
+        $line = $to_be_replaced{$key};
+        $replaced = 1;
+        last;
+      }
+    }
+
+    # Write the line to output file
+    print $out "$line\n";
+
+    # Add new lines if the current line matches a key in %to_be_added
+    unless ($replaced) {
+      foreach my $key (keys %to_be_added) {
+        if ($line =~ /\Q$key\E/ && !$added_keys{$key}) {
+          foreach my $new_line (@{$to_be_added{$key}}) {
+            print $out "$new_line\n";
+          }
+          $added_keys{$key} = 1;  # Mark as added
+        }
+      }
+    }
+  }
+  
+  close $in;
+  close $out;
+  
+  print "$prg: Configuration file generated as $config_out.\n";  
+}
 ################################################################################
 # parse all arguments from command line and config file
 ################################################################################
@@ -2990,6 +3109,7 @@ sub parse_args
   	die("Error $opt{hbm_lat} is an invalid value for hbm_lat. It should be an intiger or the path to realstic delay model\n");
   }
   
+  print "$prg: using realstic delay carve $ENV{PITON_LAT_FILE}\n" if(defined $ENV{PITON_LAT_FILE});  
   if ($opt{multimc} eq "acme"){
     my @ids = get_first_y_edge_routers_ids($opt{x_tiles} , $opt{y_tiles});
     my $list=join(',',@ids);
@@ -3365,6 +3485,17 @@ VERILOG COMPILATION RELATED
            vcs compile options. multiple options can be specified using
            multiple such arguments.
 
+    -metro_mpi_build_config=NAME
+           The -sys flag in metro_mpi simulation should be one of metro_tile, 
+           metro_fake_mem or metro_chipse. The actual sys e.g manycore
+           should be passed via this flag.  
+    
+    -metro_mpi_build
+           builds a metro_mpi model. defaults to off.
+    
+    -metro_mpi_buildargs=OPTION
+           metro_mpi compile options. multiple options can be specified using
+           multiple such arguments.
     -clean/-noclean
            wipes out the model directory and rebuilds it from scratch.
            defaults to off.

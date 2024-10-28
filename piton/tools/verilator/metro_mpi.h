@@ -14,8 +14,13 @@ using namespace std;
 #define GOOD_EXIT 1 // Good exit condition
 #define BAD_EXIT 2  // Bad exit condition
 
+#ifndef TRAP_INITIAL_CHECK_DELAY
 #define TRAP_INITIAL_CHECK_DELAY  14000  // Initial delay before first trap check
+#endif
+
+#ifndef TRAP_CHECK_INTERVAL
 #define TRAP_CHECK_INTERVAL       2000   // Delay between consecutive trap checks
+#endif
 
 //#define PITON_LATMODEL_FIX1
 //#define PITON_LATMODEL_FIX160
