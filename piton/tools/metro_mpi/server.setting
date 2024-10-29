@@ -12,9 +12,12 @@ $glob = bless( {
         'MAX_CORE_PER_NODE' => '112',
         'SIMULATORS'=>"Metro-MPI",
         'SHELL'=> 'sbatch',
-                                     
+        'MPI_JOB_ALLOCATION_MODE'=>'1'                                     
     }, 	
    
+    #  This setting depends on how MPI jobs (n number of jobs) can be run in parallel on your server
+    #  Set MPI_JOB_ALLOCATION_MODE=1 to allocate n tasks with one CPU per task.    
+    #  Set MPI_JOB_ALLOCATION_MODE=2 to allocate a single task with n CPUs.    
       
     'VERILATOR'=> {
        'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012",    	
@@ -38,13 +41,11 @@ $glob = bless( {
         '12'=> 'export CC=gcc; export  CXX=g++',        
         '13'=> 'export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}', 
         '14'=> 'export RISCV=$HOME/scratch/`whoami`/riscv_install_13_2',
-        '15'=> 'export PATH=$PATH:$HOME/scratch/`whoami`/lib/help2man/bin',
-        '16'=> 'MPI_JOB_ALLOCATION_MODE=1'
+        '15'=> 'export PATH=$PATH:$HOME/scratch/`whoami`/lib/help2man/bin'
+
                  
     },
-    #  This setting depends on how MPI jobs (n number of jobs) can be run in parallel on your server
-    #  Set MPI_JOB_ALLOCATION_MODE=1 to allocate n tasks with one CPU per task.    
-    #  Set MPI_JOB_ALLOCATION_MODE=2 to allocate a single task with n CPUs. 
+   
          
                
 }, 'GUI' );

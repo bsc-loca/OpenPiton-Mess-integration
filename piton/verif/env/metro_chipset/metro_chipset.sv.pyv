@@ -57,24 +57,6 @@ if PITON_ARIANE:
   gen_riscv_dts(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp) 
   get_bootrom_info(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
   
- 
-
-if PITON_SARG:
-  devices = pyhplib.ReadDevicesXMLFile()
-  core = "Sargantana"
-   
-  # just use a default frequency for device tree generation if not defined
-  sysFreq = 50000000
-  if 'CONFIG_SYS_FREQ' in os.environ:
-    sysFreq = int(os.environ['CONFIG_SYS_FREQ'])
-
-  timeStamp = time.strftime("%b %d %Y %H:%M:%S", time.localtime())
-  
-  gen_riscv_dts(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp) 
- 
-  
-  get_bootrom_info(devices, PITON_X_TILES*PITON_Y_TILES, sysFreq, sysFreq/128, sysFreq, os.environ['DV_ROOT']+"/design/chipset/rv64_platform/bootrom/", timeStamp)
-  
 %>
 
 `ifndef VERILATOR

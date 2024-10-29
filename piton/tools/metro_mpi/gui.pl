@@ -146,18 +146,7 @@ my @apps = (
 
 
 {name=>'mt-hello',            psize_def=>undef,  psize=>undef,        precomp=>1 },
-{name=>'mt-axpy',             psize_def=>2048,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-histogram',        psize_def=>2048,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-vadd',             psize_def=>2048,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-matmul',           psize_def=>64,     psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-spmv',             psize_def=>64,     psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-somier',           psize_def=>15,     psize=>"1,100000,1", precomp=>1 },
 {name=>'mt-stream',           psize_def=>4096,   psize=>"1,100000,1", precomp=>1, pause=>0, ratio=>0, loop=>1},
-{name=>'mt-stream-copy',      psize_def=>4096,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-stream-triad',     psize_def=>4096,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-int-sort',         psize_def=>4096,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-emb-parl',         psize_def=>4096,   psize=>"1,100000,1", precomp=>1 },
-{name=>'mt-test',             psize_def=>2048,   psize=>"1,100000,1", precomp=>1 },
 );
 
 my $princeton_dir = "$piton_root/piton/verif/diag/assembly/princeton";
@@ -173,22 +162,6 @@ foreach my $d (@apps) {
 }
 
 #make bmetal SIZE=2048 RVB_BMETAL_VER=ariane CORES=2
-
-my @apps_hca = (
-{name=>'mt-axpy',             psize_def=>2048,   psize=>"1,100000,1", loc=> '~/risc-v-benchmarks/hpc_benchmarks/axpy' ,  bin=>'bin/$name$core.riscv',precomp=>1 },
-{name=>'mt-matmul',           psize_def=>64,     psize=>"1,100000,1", loc=> '~/risc-v-benchmarks/hpc_benchmarks/gemm', bin=>'bin/$name$core.riscv',precomp=>1 },
-{name=>'mt-spmv',             psize_def=>64,     psize=>"1,100000,1", loc=> '~/risc-v-benchmarks/hpc_benchmarks/spmv',   bin=>'bin/$name$core.riscv',precomp=>1 },
-{name=>'mt-somier',           psize_def=>15,     psize=>"1,100000,1", loc=> '~/risc-v-benchmarks/hpc_benchmarks/somier', bin=>'bin/$name$core.riscv',precomp=>1 },
-);
-
-
-my $app_hca_list="";
-foreach my $d (@apps_hca) {
-    $app_hca_list.= (!defined $app_hca_list)? "$d->{name}" : ",$d->{name}";
-}
-
-
-
 
 
 sub gen_mc_map {
@@ -1037,7 +1010,7 @@ sub gen_run_tab {
 	$app_server = 'Local' if(!defined $app_server);
 	
 	my $core=$self->object_get_attribute('CTRL','TILE');
-	my $list = ($core eq "ost1")? $sparc_app_list  :  ($app_server ne 'Local') ?  $app_hca_list : $app_list;
+	my $list = ($core eq "ost1")? $sparc_app_list  :   $app_list;
 	
 	
 	
@@ -1047,7 +1020,7 @@ sub gen_run_tab {
 	{ label=>" custom App name: ", param_name=>'APP_CUSTOM', type=>"Entry", default_val=>undef, content=>undef, info=>undef, param_parent=>'CTRL', ref_delay=> undef, new_status=> undef, loc=>'vertical'},     
 	{ label=>" App name: ", param_name=>'APP', type=>"Combo-box", default_val=>'hello_world_many.c', content=>$list, info=>undef, param_parent=>'CTRL', ref_delay=> 1, new_status=> 'ref', loc=>'vertical'}, 
 	
-	{ label=>" App location: ", param_name=>'APP-SERVER', type=>"Combo-box", default_val=>'Local', content=>"Local,hca-server", info=>undef, param_parent=>'CTRL', ref_delay=> 1, new_status=> 'ref', loc=>'vertical'},	
+	{ label=>" App location: ", param_name=>'APP-SERVER', type=>"Combo-box", default_val=>'Local', content=>"Local", info=>undef, param_parent=>'CTRL', ref_delay=> 1, new_status=> 'ref', loc=>'vertical'},	
 	);
 	
 	my $a=$self->object_get_attribute('CTRL','APP');
@@ -1507,7 +1480,7 @@ sub get_app_info {
 	return (undef,undef,undef,undef,undef) if(!defined $name);
 	$app_server = 'Local' if(!defined $app_server);
 	
-	my @list = ($app_server eq 'Local')? @apps : @apps_hca ;
+	my @list =  @apps;
 	my $app_root= "piton/tools/metro_mpi/benchmark/app-scalar/";    
 	foreach my $d (@list) {
     		if($d->{name} eq $name){
@@ -1732,12 +1705,6 @@ sub run_bash {
 		    }
 			my $gen = "$local_init cd ..; bash compile.sh $dump -c $core -p $problem  -m $c -a $a -d $dtype -S $stk $e $defines" ;		
 			$compile= "cd $piton_root/$loc; rm bin/*; $gen; cd $current_dir";
-		}else{
-			# hca server
-			my ($psize_def1 ,$psiz1  , $loc1,  $precomp1 )=get_app_info($a,'hca-server');			
-			$compile= "ssh  hca \" cd $loc1; make clean; make bmetal BM_SIZE=$problem RVB_BMETAL_VER=$core BM_CORES=$c \"; scp hca:$loc1/bin/*  $piton_root/$loc/bin/${core}_${a}${c}.riscv  ";
-		   	#make bmetal SIZE=2048 RVB_BMETAL_VER=ariane CORES=8
-		
 		}
 		
 		
@@ -1842,6 +1809,7 @@ sub get_server_id {
 	my $build_queue=$obj_server->object_get_attribute('SERVER',"BUILD_QUEUE") // "UNDEF";
 	my $verilator =$obj_server->object_get_attribute('VERILATOR',"DEFAULT");
 	my $core_per_node = $obj_server->object_get_attribute('SERVER','MAX_CORE_PER_NODE') //1;
+	my $mpi_alloc_mode= $obj_server->object_get_attribute('SERVER','MPI_JOB_ALLOCATION_MODE') //1;
 
 	my $shell = $obj_server->object_get_attribute('SERVER','SHELL') // "bash";
 	
@@ -1859,7 +1827,7 @@ sub get_server_id {
 	    }	
     }
 	
-	return ($uname,$run_queue,$build_queue,$verilator,$sbatch,$core_per_node,$shell);
+	return ($uname,$run_queue,$build_queue,$verilator,$sbatch,$core_per_node,$shell,$mpi_alloc_mode);
 }
 
 
@@ -1867,7 +1835,7 @@ sub my_server_run {
 	my ($cmd,$w,$mode,$param_file,$core_num)=@_;
 	
 	
-	my ($uname,$run_queue,$build_queue,$verilator,$sbatch,$core_per_node,$shell) =get_server_id();
+	my ($uname,$run_queue,$build_queue,$verilator,$sbatch,$core_per_node,$shell,$mpi_alloc_mode) =get_server_id();
 	return if(!defined $uname);
 	
 	my $queue = ($mode eq 'build') ? $build_queue : $run_queue;
@@ -1891,6 +1859,15 @@ $job_id++;
 my $node_num = int ($core_num/int($core_per_node));
 $node_num++;
 
+  my $sbatch_task_config =
+       ($mpi_alloc_mode eq '1' ) ? 
+"#SBATCH --cpus-per-task=$core_num
+#SBATCH --ntasks=1
+"  :
+"
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=$core_num
+";
 	
 	$file="#!/bin/bash
 
@@ -1900,12 +1877,10 @@ $node_num++;
 #SBATCH --output=r.out
 #SBATCH --error=r.err
 #SBATCH --nodes=$node_num
-#SBATCH --cpus-per-task=$core_num
-#SBATCH --ntasks=1
-#SBATCH --tasks-per-node=1 # Only 1 task per node
 #SBATCH --qos=$queue
 #SBATCH --time=1:00:00
 
+$sbatch_task_config
 $sbatch
 
 mkdir -p ./out;

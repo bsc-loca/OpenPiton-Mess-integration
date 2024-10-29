@@ -48,13 +48,13 @@ my $tmp2 = "$piton_root/build/tmp2.sh";
 
 my $repo = abs_path("$piton_root");
 my $root= basename($repo);
-my ($uname,$build_queue,$run_queue,$time_run,$time_build,$modules,$verilator_v,$sbatch,$core_per_node) =get_server_id();
+my ($server_ref,$verilator_v,$sbatch) =get_server_id();
+die "Error: SERVER setting is not defined in server.setting file! " if(!defined $server_ref);
+my %server = %{$server_ref};
+my $uname =$server{'UNAME'};
 die "Error: uasername is not defined for the remote server! " if(!defined $uname);
-my $ssh = "ssh  $uname";
+my $ssh = "ssh -q $uname";
 my $server_root = "${uname}:$root";
-
-
-
 
 
 #$current_dir="$current_dir/..";
@@ -115,11 +115,8 @@ sub check_we_have_output {
 }
 
 sub copy_repo_on_server{
-   
     my $bash = "cd $mpi_sim_dir; bash ./server_init.sh -u $uname -c";
-    $bash.=  " -m \"$modules\"" if (defined $modules);
     $bash.=  " -v $verilator_v" if defined ($verilator_v);
-    
     system($bash);
 }    
     
@@ -145,26 +142,9 @@ sub get_server_id {
         print "Error: Cannot load $paths_file file\n";
         exit 1;        
     }
-    my $uname  = $obj->object_get_attribute('SERVER',"UNAME");
-    my $queue  = $obj->object_get_attribute('SERVER',"QUEUE");
-
-    my $queue_run   = $obj->object_get_attribute('SERVER', 'RUN_QUEUE');
-    my $queue_build = $obj->object_get_attribute('SERVER', 'BUILD_QUEUE');
-    my $time_run    = $obj->object_get_attribute('SERVER', 'RUN_TIME');
-    my $time_build  = $obj->object_get_attribute('SERVER', 'BUILD_TIME' );
-    my $core_per_node = $obj->object_get_attribute('SERVER','MAX_CORE_PER_NODE');
-	
-       
-    my $modules;
-    my $modules_ref = $obj->object_get_attribute('MODULES');    
-    if(defined $modules_ref){
-	    my %hash = %{$modules_ref};
-	    $modules="";
-	    foreach my $p (sort  {$a <=> $b} (keys %hash)){
-	      $modules.="$hash{$p} "
-	    }	
-    }
     
+    my $server_ref=$obj->object_get_attribute('SERVER');
+       
     my $sbatch;
     my $sbatch_ref = $obj->object_get_attribute('SBATCH');    
     if(defined $sbatch_ref){
@@ -176,7 +156,7 @@ sub get_server_id {
     }
  
     my $verilator_v =  $obj->object_get_attribute('VERILATOR_VERSION');   
-    return ($uname,$queue_build,$queue_run,$time_run,$time_build,$modules,$verilator_v,$sbatch,$core_per_node);
+    return ($server_ref,$verilator_v,$sbatch);
 }
 
 my $start_old = time();
@@ -288,10 +268,20 @@ sub my_server_run {
     my ($cmd,$w,$core_num,$mode,$verbus,$run_time_hour)=@_;
     $mode = 'run' if (!defined $mode);
     $verbus = 0 if(!defined $verbus);
-    my $queue = ($mode eq 'run')? $run_queue : $build_queue;
-   
-    my $alloc_time = ($mode eq 'build') ?   "$time_build" :  "$time_run";
-       
+    my $queue = ($mode eq 'run')? $server{'RUN_QUEUE'}  : $server{'BUILD_QUEUE'} ;
+    my $alloc_time = ($mode eq 'build') ?   "$server{'BUILD_TIME'}" :  "$server{'RUN_TIME'}";
+    my $core_per_node=$server{'MAX_CORE_PER_NODE'}; 
+    my $mpi_alloc_mode=$server{'MPI_JOB_ALLOCATION_MODE'};
+    
+    my $sbatch_task_config =
+       ($mpi_alloc_mode eq '1' ) ? 
+"#SBATCH --cpus-per-task=$core_num
+#SBATCH --ntasks=1
+"  :
+"
+#SBATCH --cpus-per-task=1
+#SBATCH --ntasks=$core_num
+";
 
 
     my $file="#!/bin/bash
@@ -310,29 +300,19 @@ $cmd
 
     my $node_num = int ($core_num/int($core_per_node));
     $node_num++;
-    
+
+# SLURM job script file.
+# Modify this script as needed based on the specific SLURM configuration and resources available on your server.    
     $file="#!/bin/bash
-
-
-
 #SBATCH --job-name=\"$job\"
 #SBATCH --output=r.out
 #SBATCH --error=r.err
 #SBATCH --nodes=$node_num
-
-#SBATCH --tasks-per-node=1 # Only 1 task per node
 #SBATCH --qos=$queue
 #SBATCH --time=$alloc_time
 
+$sbatch_task_config
 $sbatch
-
-if [[ \$MPI_JOB_ALLOCATION_MODE -eq 1 ]]; then
-#SBATCH --cpus-per-task=$core_num
-#SBATCH --ntasks=1
-else
-#SBATCH --cpus-per-task=1
-#SBATCH --ntasks=$core_num
-fi
 
 mkdir -p ./out;
 time bash ./build.sh > ./out/${job}_log
@@ -706,7 +686,6 @@ sub get_metro_mpi_command{
    		$cache.=" -noc${i}_width=$l "    
     }
     my $comand = "";
-    $comand.= "module load $modules;" if(defined $modules);
     $comand.= "bash ./metro_mpi_run.sh -x $x -y $y -z $core_name -w $model_dir $p $pronoc_params $flag $app_arg $mmc $lat -d -e \"$cache\"";
     return $comand;
 }
@@ -2057,8 +2036,11 @@ sub run_the_experiment {
     make_path ($sim_results_dir ) unless(-d $sim_results_dir );
     make_path ($model_bin_dir   ) unless(-d $model_bin_dir   );
     my ($build,$run,$report,$force,$name,$help,$verbus,$q,$t)=@args;
-    if(defined $q) {$run_queue = $q if($q ne 'Default');}
-    if(defined $t) {$time_run  = $t if($t ne 'Default');}
+    
+    
+    
+    if(defined $q) {$server{'RUN_QUEUE'}=$q  if($q ne 'Default');}
+    if(defined $t) {$server{'RUN_TIME' }=$t  if($t ne 'Default');}
    
  
     my @a1 = (1,0,0,$force,$verbus,$help,$name);
