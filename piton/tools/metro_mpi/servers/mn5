@@ -1,4 +1,16 @@
-#provide your username in the server as UNAME value 
+# SLURM Job Script Configuration
+#   UNAME: Specifies your server login username in the format uname@server_name.
+#   BUILD_QUEUE: Queue name used for building the Verilator model. Since building is quick, choose a fast queue with limited runtime.
+#   RUN_QUEUE: Queue name for running the Verilator model simulations. All simulation jobs will be submitted to this queue simultaneously.
+#   BUILD_TIME: Maximum time allocated for the build job. If exceeded, the build process will be terminated.
+#   RUN_TIME: Maximum time allocated for simulation jobs. If exceeded, simulations will be terminated.
+#   MAX_CORE_PER_NODE: The maximum number of cores available per node, used to calculate the required number of nodes per simulation.
+#   MPI_JOB_ALLOCATION_MODE: Determines how MPI jobs (n jobs) are run in parallel on your server. 
+#       Set MPI_JOB_ALLOCATION_MODE=1 to allocate n tasks, each with one CPU.
+#       Set MPI_JOB_ALLOCATION_MODE=2 to allocate a single task with n CPUs.
+#       E.g., a 64-core simulation with 6 memory controllers requires 64 + 6 + 1 = 71 MPI jobs.
+#   SBATCH: Add any extra SBATCH settings needed for the SLURM job script here. Update the SBATCHS_EN parameter accordingly.
+   
 $glob = bless( {              
                 
     'SERVER' => {
@@ -13,11 +25,7 @@ $glob = bless( {
         'SIMULATORS'=>"Metro-MPI",
         'SHELL'=> 'sbatch',
         'MPI_JOB_ALLOCATION_MODE'=>'1'                                     
-    }, 	
-   
-    #  This setting depends on how MPI jobs (n number of jobs) can be run in parallel on your server
-    #  Set MPI_JOB_ALLOCATION_MODE=1 to allocate n tasks with one CPU per task.    
-    #  Set MPI_JOB_ALLOCATION_MODE=2 to allocate a single task with n CPUs.    
+    }, 	   
       
     'VERILATOR'=> {
        'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012",    	
@@ -25,7 +33,7 @@ $glob = bless( {
        'LOCAL_VER' => '4.104',
     },
        
-    'SBATCHS_EN'=> [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16],                         
+    'SBATCHS_EN'=> [1,2,3,4,5,6,7,8,9,10,11,12,13,14],                         
     'SBATCH' => {
         '1' => '#SBATCH --account=bsc18',
         '2' => '#SBATCH --exclusive',  
@@ -40,20 +48,8 @@ $glob = bless( {
         '11'=> 'export MPICH_CXX=icpx',
         '12'=> 'export CC=gcc; export  CXX=g++',        
         '13'=> 'export SRUN_CPUS_PER_TASK=${SLURM_CPUS_PER_TASK}', 
-        '14'=> 'export RISCV=$HOME/scratch/`whoami`/riscv_install_13_2',
-        '15'=> 'export PATH=$PATH:$HOME/scratch/`whoami`/lib/help2man/bin'
-
-                 
-    },
-   
-         
+        '14'=> 'export PATH=$PATH:$HOME/scratch/`whoami`/lib/help2man/bin',                 
+    },         
                
 }, 'GUI' );
-
-
- 
- 
-
-
- 
 
