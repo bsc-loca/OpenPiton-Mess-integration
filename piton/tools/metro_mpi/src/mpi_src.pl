@@ -1,5 +1,34 @@
 #!/usr/bin/perl
 
+# Copyright (c) 2024, Barcelona Supercomputing Center
+# Contact: alireza.monemi [at] bsc [dot] es
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright notice,
+#      this list of conditions and the following disclaimer.
+#
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#     * Neither the name of the copyright holder nor the names
+#       of its contributors may be used to endorse or promote products
+#       derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 
 use FindBin;
 use lib $FindBin::Bin;
@@ -55,7 +84,9 @@ my $uname =$server{'UNAME'};
 die "Error: uasername is not defined for the remote server! " if(!defined $uname);
 my $ssh = "ssh -q $uname";
 my $server_root = "${uname}:$root";
-
+my $scp="scp";
+my $run_on_server=0;
+my $qta="\"";
 
 #$current_dir="$current_dir/..";
 my $ii=0;
@@ -119,12 +150,29 @@ sub copy_repo_on_server{
     $bash.=  " -v $verilator_v" if defined ($verilator_v);
     system($bash);
 }    
+
+sub run_bash_cmd_get_stdout {
+    my $cmd=shift;    
+    $cmd= "$cmd 2>&1"; #redirects the standard error
+    # Run the command and capture the output
+    my  $stdout = `$cmd`;
+    # Check if the command was successful
+    if ($? != 0) {
+        print "Error: $cmd failed:  $stdout\n";
+        return "";
+    }
+    return   $stdout;
+}
+
     
 sub get_list_of_all_models_dir_in_server {    
-    my $bash = "$ssh find -type f \\\\\\\( -name \"Vmetro_tile\" -o -name \"Vmetro_fake_mem\" -o -name \"Vmetro_chipset\" -o -name \"flist\" \\\\\\\) -path \\\"./$root/build/METRO_MPI_ALL/*\\\" " ;
+    my $bash = ($run_on_server)?
+    "$ssh find -type f \\( -name \"Vmetro_tile\" -o -name \"Vmetro_fake_mem\" -o -name \"Vmetro_chipset\" -o -name \"flist\" \\) -path \"./$root/build/METRO_MPI_ALL/*\" " 
+    
+    : "$ssh find -type f \\\\\\\( -name \"Vmetro_tile\" -o -name \"Vmetro_fake_mem\" -o -name \"Vmetro_chipset\" -o -name \"flist\" \\\\\\\) -path \\\"./$root/build/METRO_MPI_ALL/*\\\" " ;
     #print "$bash\n";
     my $out = run_cmd_message_dialog_errors($bash);
-    $server_models =   "$out";    
+    $server_models =   "$out";   
 }    
                 
 sub add_active_job{
@@ -252,8 +300,8 @@ sub run_cmd_message_dialog_errors{
     my ($cmd)=@_;
     my ($stdout,$exit,$stderr)=run_cmd_in_back_ground_get_stdout($cmd);
     if(length $stderr>1){            
-        print "Error : $stderr\n";
-        #exit 1;
+        print "Error : $cmd failed: $stderr\n";
+        exit 1;
         #return 1;
     }if($exit){
         print "Error : $cmd failed: $stdout\n";
@@ -323,7 +371,7 @@ time bash ./build.sh > ./out/${job}_log
    
     
     #create run.sh file    
-    #my $bash="$ssh mkdir -p $root/$w/script; scp $tmp1 $server_root/$w/script/build.sh; scp $tmp2 $server_root/$w/script/Queue_build.sh; $ssh chmod +x $root/$w/script/Queue_build.sh";
+    #my $bash="$ssh mkdir -p $root/$w/script; $scp $tmp1 $server_root/$w/script/build.sh; $scp $tmp2 $server_root/$w/script/Queue_build.sh; $ssh chmod +x $root/$w/script/Queue_build.sh";
     
     # my $bash="sftp $uname << EOF  
     # mkdir -p $root/$w/script; 
@@ -332,14 +380,13 @@ time bash ./build.sh > ./out/${job}_log
     # chmod 755 $root/$w/script/Queue_build.sh
     # EOF";
    
-    my $bash="scp $piton_root/build/tmp*.sh  $server_root/$w/; 
-    $ssh \" mkdir -p $root/$w/script; 
+    my $bash="$scp $piton_root/build/tmp*.sh  $server_root/$w/; 
+    $ssh $qta mkdir -p $root/$w/script; 
     cp $root/$w/tmp1.sh  $root/$w/script/build.sh;   
     cp $root/$w/tmp2.sh  $root/$w/script/Queue_build.sh;  
    
     chmod +x $root/$w/script/Queue_build.sh;
-    cd $root/$w/script/; sbatch Queue_build.sh    
-    \" ";
+    cd $root/$w/script/; sbatch Queue_build.sh $qta";
 
     
     my_run($bash,0,$verbus);
@@ -362,7 +409,7 @@ sub my_server_run_sequencial {
 $cmd
 ";
     save_file("$tmp1",$file);
-    my $bash="scp $tmp1 $server_root/bash.sh;   $ssh chmod +x $root/bash.sh; $ssh $root/bash.sh";
+    my $bash="$scp $tmp1 $server_root/bash.sh;   $ssh chmod +x $root/bash.sh; $ssh $root/bash.sh";
     my_run($bash,0,$verbus);
     return;
 }
@@ -780,7 +827,7 @@ sub gen_model {
         foreach my $ff (@bin_mpi){
             my $dd = dirname("$local_model_dir/$ff");
             $cmd.="mkdir -p $dd; ";
-            $cmd.="scp  $server_root/$model_dir/$ff $local_model_dir/$ff; ";    
+            $cmd.="$scp  $server_root/$model_dir/$ff $local_model_dir/$ff; ";    
         }
         
         my_run($cmd,0,$verbus);
@@ -813,7 +860,7 @@ sub gen_model {
         }
                 
         foreach my $ff (@bin_mpi){
-            $cmd.="scp  $local_model_dir/$ff  $server_root/$model_dir/$ff;";    
+            $cmd.="$scp  $local_model_dir/$ff  $server_root/$model_dir/$ff;";    
         }
         #delet temp files
         #$cmd.="rm -rf $local_model_dir;";
@@ -833,7 +880,7 @@ sub copy_compilation_log_file{
     my $cmd=" ";
     my $dd = dirname("$local_model_dir/logs");
     $cmd.="mkdir -p $dd; ";
-    $cmd.= "scp -r $server_root/$model_dir/{sims.log,/script/*}   $dd/";
+    $cmd.= "$scp -r $server_root/$model_dir/{sims.log,/script/*}   $dd/";
     my_run($cmd,0,$verbus);   
 }
 
@@ -912,7 +959,7 @@ sub check_result_valid_localy {
 sub check_result_valid_remotely {
 	my ($dir)=@_;
 	my $fake_uart = "./$root/build/METRO_MPI_ALL/$dir/fake_uart.log";
-	my $bash="$ssh \"  [[ -f $fake_uart ]] && grep -R \"barrier\" -m 1 $fake_uart || echo 0\"";
+	my $bash="$ssh $qta  [[ -f $fake_uart ]] && grep -R \"barrier\" -m 1 $fake_uart || echo 0$qta";
     my $r=run_cmd_message_dialog_errors($bash);
 	my $valid= (length($r) >3 ) ? 1 :0; 
 	return $valid;	
@@ -1079,8 +1126,8 @@ sub run_model {
     #Compile benchmark
     if(!defined $generated_bins{$app_bin_dir}){
         print "$app_bin_dir/$bin_name is not generated before. Start generating the binary:...\n"  if($verbus);
-        $compile .="; $ssh mkdir -p $root/$app_bin_dir; $ssh rm -f $root/$app_bin_dir/$bin_name;  scp $piton_root/$loc/bin/$bin_name  $server_root/$app_bin_dir/$bin_name;";   
-        $compile .=" scp $mpi_sim_dir/src/rv64_mem_img $server_root/$app_bin_dir/; $ssh chmod +x $root/$app_bin_dir/rv64_mem_img; $ssh \" cd $root/$app_bin_dir/; ./rv64_mem_img $bin_name ~/scratch/`$ssh whoami`/riscv_install;\"";
+        $compile .="; $ssh mkdir -p $root/$app_bin_dir; $ssh rm -f $root/$app_bin_dir/$bin_name;  $scp $piton_root/$loc/bin/$bin_name  $server_root/$app_bin_dir/$bin_name;";   
+        $compile .=" $scp $mpi_sim_dir/src/rv64_mem_img $server_root/$app_bin_dir/; $ssh chmod +x $root/$app_bin_dir/rv64_mem_img; $ssh $qta cd $root/$app_bin_dir/; ./rv64_mem_img $bin_name ~/scratch/`$ssh whoami`/riscv_install;$qta";
         my_run($compile,0,$verbus);
         $generated_bins{$app_bin_dir}=1;
     } else {
@@ -1091,7 +1138,7 @@ sub run_model {
 
     #make hard link from model_bin seprately for each app
     #my $cmd="$ssh \" mkdir -p $root/$model_dir/bin;";
-    my $cmd="$ssh \" ";
+    my $cmd="$ssh $qta ";
     foreach my $ff (@bin_mpi){
         my $dd = dirname("$root/$model_dir/$ff");
         $cmd.="mkdir -p $dd; ";
@@ -1099,7 +1146,7 @@ sub run_model {
     }
 
    # $cmd.="cp $root/$loc/bin/*  $root/$model_dir/bin;\"";
-    $cmd.="\"";
+    $cmd.="$qta";
     my_run($cmd,0,$verbus);
 
     #make a local copy of benchmarks sources for each model 
@@ -1149,9 +1196,9 @@ sub copy_results {
     
     my $copy =  !(-f "$result_dir/fake_uart.log") || !(-f "$result_dir/sims.log") ||  $force || ($valid==0);
     
-   # my $cmd= "mkdir -p $result_dir;  scp  $server_root/$model_dir/fake_uart.log   $result_dir/fake_uart.log; scp  $server_root/$model_dir/sims.log   $result_dir/sims.log; $ssh rm  -f $root/$model_dir/trace_hart_00.dasm ";
+   # my $cmd= "mkdir -p $result_dir;  $scp  $server_root/$model_dir/fake_uart.log   $result_dir/fake_uart.log; $scp  $server_root/$model_dir/sims.log   $result_dir/sims.log; $ssh rm  -f $root/$model_dir/trace_hart_00.dasm ";
     
-    my $cmd= "mkdir -p $result_dir;  scp -r $server_root/$model_dir/{fake_uart.log,sims.log,/script/*}   $result_dir/";
+    my $cmd= "mkdir -p $result_dir;  $scp -r $server_root/$model_dir/{fake_uart.log,sims.log,/script/*}   $result_dir/";
     
     if ($copy){
      my $valid = check_result_valid_remotely("${mode_name}_${app_name}");
@@ -2018,7 +2065,13 @@ $row_names
     print "Results text are reported in $txt\n";
 }
 
-
+sub run_this_script_on_server{
+     $ssh= "cd $piton_root/..;";
+     $server_root = $root;
+     $scp="cd $piton_root/..; cp";
+     $run_on_server=1;
+     $qta=""
+}
 
 
 sub run_the_experiment {
@@ -2041,7 +2094,7 @@ sub run_the_experiment {
     
     if(defined $q) {$server{'RUN_QUEUE'}=$q  if($q ne 'Default');}
     if(defined $t) {$server{'RUN_TIME' }=$t  if($t ne 'Default');}
-   
+    
  
     my @a1 = (1,0,0,$force,$verbus,$help,$name);
     my @a2 = (0,1,0,$force,$verbus,$help,$name);

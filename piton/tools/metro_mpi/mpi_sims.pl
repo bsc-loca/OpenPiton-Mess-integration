@@ -1,4 +1,33 @@
 #!/usr/bin/perl
+# Copyright (c) 2024, Barcelona Supercomputing Center
+# Contact: alireza.monemi [at] bsc [dot] es
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+#     * Redistributions of source code must retain the above copyright notice,
+#      this list of conditions and the following disclaimer.
+#
+#     * Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#     * Neither the name of the copyright holder nor the names
+#       of its contributors may be used to endorse or promote products
+#       derived from this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
 package GUI;
 use FindBin;
 use lib $FindBin::Bin;
@@ -88,7 +117,7 @@ my $core_appr1 = '"$ref->{name}"."-L2(".int($ref->{l2_SZ}/1024)."k)-L15(".int($r
 
 # declare the perl command line flags/options we want to allow
 my %options=();
-getopts("brchfn:eVq:t:", \%options);
+getopts("brchfn:eVq:t:s", \%options);
 
 # test for the existence of the options on the command line.
 # in a normal program you'd do more than just print these.
@@ -127,6 +156,7 @@ if (defined $options{h} ) {
       -q [queue name] : The name of run quque. The deafult queue is seclted from the server.setting file
       -t [run time] : Run time in form of \"hh:mm:ss\" Default run time is 2 hours.
       -h show this help
+      -s requires when you run this scripts directly one the remote server.
    xpr_name:\n";
 
     my @list = get_list_of_experiments();
@@ -153,9 +183,14 @@ $options{V} = 0 if (!defined $options{V});
 $options{c} = 0 if (!defined $options{c});
 $options{q} = "Default"   if (!defined $options{q});
 $options{t} = "Default" if (!defined $options{t});
+$options{s} = 0 if (!defined $options{s});
+
+run_this_script_on_server() if ($options{s});
 
 
-
+if($options{c} && $options{s}){
+    die "You cannot pass -c & -s at the same time";
+}
 
 if($options{b}==0 && $options{r}==0 && $options{e}==0 && $options{c} ==0){
     $options{b}=1;
