@@ -31,7 +31,7 @@ To use this integration, you will need:
 
 1. **Clone the Repository and Initialize Submodules**
    ```bash
-   git clone -b mess https://github.com/bsc-loca/OpenPiton-Mess-integration.git
+   git clone -b mpi_mmc https://github.com/bsc-loca/OpenPiton-Mess-integration.git
    cd OpenPiton-Mess-integration
    git submodule update --init --recursive
    ```
@@ -56,8 +56,12 @@ To use this integration, you will need:
    perl mpi_sims -n d -s -f
    ```
 
+   For additional options and usage instructions, you can run:
+   ```bash
+   perl mpi_sims -h
+   ```
 
-
+  Note that the realistic memory delay model is sourced from `piton/tools/pli/Realistic_lat/curves_src/cxl`.
 
 ![OpenPiton Logo](/docs/openpiton_logo_black.png?raw=true)
 
