@@ -1,3 +1,64 @@
+# OpenPiton MESS Integration
+
+This repository provides an artifact for obtaining simulation results by integrating the MESS realistic memory model delay into the OpenPiton platform. It builds upon the OpenPiton development branch, adding key features and enhancements to support advanced memory simulation with MESS.
+
+### Related Research
+The MESS memory delay model is described in the following paper:
+
+**"A Mess of Memory System Benchmarking, Simulation and Application Profiling"** 
+*Pouya Esmaili-Dokht, Francesco Sgherzi, Valeria Soldera Girelli, Isaac Boixaderas, Mariana Carmin, Alireza Monemi, Adria Armejach, Estanislao Mercadal, German Llort, Petar Radojkovic, Miquel Moreto, Judit Gimenez, Xavier Martorell, Eduard Ayguade, Jesus Labarta, Emanuele Confalonieri, Rishabh Dubey, Jason Adlard* 
+[Available on arXiv](https://arxiv.org/abs/2405.10170)
+
+The simulation model for the OpenPiton integration is based on metro mpi methodologies outlined in:
+
+**"Fast Behavioral RTL Simulation of 10B Transistor SoC Designs with Metro-MPI"** 
+*López-Paradís, G., Li, B., Armejach, A., Wallentowitz, S., Moretó, M., Balkind, J.* 
+In *2023 Design, Automation & Test in Europe Conference & Exhibition (DATE)*.
+
+### New Features Added
+The following features extend the OpenPiton default development branch to support simulations with the MESS delay model:
+
+1. **Multiple Memory Controllers** – Allows for increased memory bandwidth and flexibility in simulation.
+2. **Configurable Memory Delay Module** – Enables dynamic adjustment of memory delays during runtime.
+3. **Custom Metro-MPI Simulation Scripts** – Provides scripts for executing simulations with Metro-MPI, tailored to work with the MESS model.
+
+### System Requirements
+To use this integration, you will need:
+- **A Remote Server with a Queueing System** – The server should support at least 65 cores plus additional cores equal to the number of memory controllers, as each core is mapped to a separate physical processor in the Metro-MPI simulation.
+- **RISC-V Toolchain and Verilator** – We recommend Verilator version 4.104, which has been tested and confirmed compatible with this setup.
+
+### Instructions for Obtaining Simulation Results
+
+1. **Clone the Repository and Initialize Submodules**
+   ```bash
+   git clone -b mess https://github.com/bsc-loca/OpenPiton-Mess-integration.git
+   cd OpenPiton-Mess-integration
+   git submodule update --init --recursive
+   ```
+
+2. **Set Environment Variables**
+   Define the following environment variables in your shell:
+   ```bash
+   export RISCV=[path_to_riscv_tool_chain]
+   export VERILATOR_ROOT=[path_to_verilator_dir]
+   ```
+
+3. **Configure SLURM Job Script**
+   Navigate to the Metro-MPI tools directory:
+   ```bash
+   cd piton/tools/metro_mpi
+   ```
+   Edit the `server.setting` file to match your server's SLURM configuration.
+
+4. **Run the Simulation**
+   Execute the following Perl script to start the simulation:
+   ```bash
+   perl mpi_sims -n d -s -f
+   ```
+
+
+
+
 ![OpenPiton Logo](/docs/openpiton_logo_black.png?raw=true)
 
 # OpenPiton Research Platform   [![Build Status](https://jenkins.princeton.edu/buildStatus/icon?job=cloud/piton_git_push_master)](https://jenkins.princeton.edu/job/cloud/job/piton_git_push_master/)
