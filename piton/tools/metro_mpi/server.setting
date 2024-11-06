@@ -18,7 +18,7 @@ $glob = bless( {
         'UNAME' => 'mn5',  
         'QUEUES' => 'gp_debug,gp_bsccs',  
         'BUILD_QUEUE' => 'gp_debug',
-        'RUN_QUEUE'   => 'gp_debug', 
+        'RUN_QUEUE'   => 'gp_bsccs', 
         'RUN_TIME'   => '1:59:00',
         'BUILD_TIME'   => '00:20:00',
         'MAX_CORE_PER_NODE' => '112',
@@ -28,9 +28,9 @@ $glob = bless( {
     }, 	   
       
     'VERILATOR'=> {
-       'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012",    	
-       'DEFAULT'  =>'4.104',
-       'LOCAL_VER' => '4.104',
+       'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012,5.014",    	
+       'DEFAULT'  =>'5.014',
+       'LOCAL_VER' => '5.014',
     },
        
     'SBATCHS_EN'=> [1,2,3,4,5,6,7,8,9,10,11,12,13,14],                         

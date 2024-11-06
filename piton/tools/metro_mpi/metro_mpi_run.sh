@@ -64,7 +64,7 @@ run_sim=0
 pronoc=""
 multimc=""
 hbm_lat=""
-rtl_flag="-config_rtl=PITON_CUSTOM_IO_INIT_BASE"
+rtl_flag=""
 extra_args=""
 build_locally=0
 pronoc_params=""
@@ -167,8 +167,8 @@ echo "  build_locally=$build_locally"
 
 
 
-flag="-metro_mpi_build_args=\"-CFLAGS -O2 \"  "
-
+#flag="-metro_mpi_build_args=\"-CFLAGS -O2 \"  "
+flag=" "
 
 cd $PITON_ROOT; mkdir -p $work
 cd $work

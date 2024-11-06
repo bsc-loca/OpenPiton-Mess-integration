@@ -47,7 +47,7 @@ void stream(const ssize_t coreid, const ssize_t ncores,const ssize_t lda , data_
     if ((block*ncores) != lda) block++;
     start = block * coreid;
     end   = start + block;
-    if (end > lda) return; //should assert error instead
+    if (end > lda) end = lda;
        
     
    for (uint64_t i = 0; i < loop; ++i)

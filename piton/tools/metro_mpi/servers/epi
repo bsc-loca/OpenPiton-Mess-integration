@@ -6,13 +6,12 @@ $glob = bless( {
         'UNAME' => 'epi3',
         'SIMULATORS'=>"Questasim,Verilator",
         'SHELL'=> 'bash',                                  
-    },
-                           	
-         
+    },                           	
+   
     'VERILATOR'=> {
-       'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012",    	
-       'DEFAULT'  =>'4.104',
-       'LOCAL_VER' => '4.104',
+       'VERSIONS' => "4.104,4.204,4.224,4.228,5.004,5.010,5.014,5.012,5.014",    	
+       'DEFAULT'  =>'5.014',
+       'LOCAL_VER' => '5.014',
     },
         
         
@@ -27,3 +26,11 @@ $glob = bless( {
     },
                
 }, 'GUI' );
+
+
+ 
+ 
+
+
+ 
+

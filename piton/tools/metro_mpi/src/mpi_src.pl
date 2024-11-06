@@ -29,7 +29,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
 use FindBin;
 use lib $FindBin::Bin;
 use strict;
@@ -84,6 +83,7 @@ my $uname =$server{'UNAME'};
 die "Error: uasername is not defined for the remote server! " if(!defined $uname);
 my $ssh = "ssh -q $uname";
 my $server_root = "${uname}:$root";
+
 my $scp="scp";
 my $run_on_server=0;
 my $qta="\"";
@@ -150,7 +150,6 @@ sub copy_repo_on_server{
     $bash.=  " -v $verilator_v" if defined ($verilator_v);
     system($bash);
 }    
-
 sub run_bash_cmd_get_stdout {
     my $cmd=shift;    
     $cmd= "$cmd 2>&1"; #redirects the standard error
@@ -163,7 +162,6 @@ sub run_bash_cmd_get_stdout {
     }
     return   $stdout;
 }
-
     
 sub get_list_of_all_models_dir_in_server {    
     my $bash = ($run_on_server)?
@@ -172,7 +170,7 @@ sub get_list_of_all_models_dir_in_server {
     : "$ssh find -type f \\\\\\\( -name \"Vmetro_tile\" -o -name \"Vmetro_fake_mem\" -o -name \"Vmetro_chipset\" -o -name \"flist\" \\\\\\\) -path \\\"./$root/build/METRO_MPI_ALL/*\\\" " ;
     #print "$bash\n";
     my $out = run_cmd_message_dialog_errors($bash);
-    $server_models =   "$out";   
+    $server_models =   "$out";    
 }    
                 
 sub add_active_job{
@@ -203,7 +201,7 @@ sub get_server_id {
 	    }	
     }
  
-    my $verilator_v =  $obj->object_get_attribute('VERILATOR_VERSION');   
+    my $verilator_v =  $obj->object_get_attribute('VERILATOR','DEFAULT');   
     return ($server_ref,$verilator_v,$sbatch);
 }
 
@@ -300,11 +298,11 @@ sub run_cmd_message_dialog_errors{
     my ($cmd)=@_;
     my ($stdout,$exit,$stderr)=run_cmd_in_back_ground_get_stdout($cmd);
     if(length $stderr>1){            
-        print "Error : $cmd failed: $stderr\n";
-        exit 1;
+        print "Error: $cmd failed: $stderr\n";
+        #exit 1;
         #return 1;
     }if($exit){
-        print "Error : $cmd failed: $stdout\n";
+        print "Error: $cmd failed: $stdout\n";
         #return 1;        
     }
     $stdout = "" if (!defined $stdout);
@@ -1211,7 +1209,7 @@ sub copy_results {
      		print "Downloading ${mode_name}_${app_name} simulation results from the remote server...\n";
      		my_run($cmd,0,$verbus);
      	}
-    	print " ** [Info], the ${mode_name}_${app_name} simulation hanged or not run!\n";
+    	print " ** [Info]: Cannot get simulation results for the ${mode_name}_${app_name}. The simulation may stalled or not started successfully!\n";
      }
     }
 }
@@ -1831,7 +1829,7 @@ sub my_run_model {
     
     my @aa=("1-flit","3-flit","4-flit","9-flit","11-flit","MPI Rank", "MPI Dest Rank","#flit_in","#flit_out","ticks","cycles","MPIRank","Memnum","MPIDestRank","Tilenum");
     my @filter = (@flit_st,@aa);
-    my %sts = %{$results{$num}};
+    my %sts = %{$results{$num}} if (defined $results{$num});
     my @all_stats=sort keys %sts;
       
     # Create a hash to store the elements of array @flit_st
@@ -2065,6 +2063,7 @@ $row_names
     print "Results text are reported in $txt\n";
 }
 
+
 sub run_this_script_on_server{
      $ssh= "cd $piton_root/..;";
      $server_root = $root;
@@ -2094,7 +2093,7 @@ sub run_the_experiment {
     
     if(defined $q) {$server{'RUN_QUEUE'}=$q  if($q ne 'Default');}
     if(defined $t) {$server{'RUN_TIME' }=$t  if($t ne 'Default');}
-    
+   
  
     my @a1 = (1,0,0,$force,$verbus,$help,$name);
     my @a2 = (0,1,0,$force,$verbus,$help,$name);

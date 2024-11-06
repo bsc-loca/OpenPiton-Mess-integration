@@ -368,11 +368,6 @@ then
     $ssh mkdir -p $root/build
 #    scp -r $PITON_ROOT/piton $server_root/
     rsync -avz $EXCLUDES $PITON_ROOT/piton/* $server_root/piton
-        
-    #remove --oversubscribe from sims2
-    echo "[info] remove --oversubscribe from sims2 "
-    $ssh " sed -i  's/--oversubscribe/ /g'  $root/piton/tools/src/sims/sims,2.0 "
-
     $ssh mkdir -p scratch/$server_uname
 
   for str in ${mySetups[@]}; do
