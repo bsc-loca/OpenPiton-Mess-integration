@@ -2720,23 +2720,17 @@ sub metro_mpi_conf_gen {
   my $orig_sys="$ENV{DV_ROOT}/tools/src/sims/$sys.config";
   my $config_out="$ENV{DV_ROOT}/tools/src/sims/${mpi_sys}.config";
   my @to_be_removed=(
-    "$sys.flist",
     "Flist.pll",
     "Flist.jtag",
-    #"Flist.dmbr",
     "Flist.system",
     "SIM_COMMIT_LOG",
     "simulator/reference",
     "simulator/models/filelist.f",
     "vcs_build_args",
 
-  );
-  my %to_be_added=(
-    "Flist.l15" => [
-      "    -flist=\$DV_ROOT/verif/env/metro_tile/metro_tile.flist",
-      "    -flist=\$DV_ROOT/verif/env/common/fake_mem_ctrl.flist"
-    ],  
+  ); 
     
+  my %to_be_added=(    
     "Flist.include" => [
       "    -config_rtl=$METRO_DEF",
       "    -config_rtl=PITON_NO_CHIP_BRIDGE",
@@ -2760,10 +2754,14 @@ sub metro_mpi_conf_gen {
     ],
   );
 
-  $to_be_added{"fake_mem_ctrl.flist"} =[
+  if (($mpi_sys ne "metro_tile")){
+      $to_be_added{"Flist.l15"} =[
       "    -flist=\$DV_ROOT/verif/env/metro_chipset/metro_chipset.flist",
       "    -flist=\$DV_ROOT/verif/env/metro_chipset/metro_fake_mem.flist"
-    ] if (($mpi_sys ne "metro_tile")); 
+        ]; 
+  } else {
+        $to_be_added{"Flist.l15"} =["    -flist=\$DV_ROOT/verif/env/metro_tile/metro_tile.flist"];
+  }
 
   my %to_be_replaced=(
      "<$sys>"=>"<${mpi_sys}>",

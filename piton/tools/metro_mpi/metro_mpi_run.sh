@@ -205,6 +205,8 @@ function build_func () {
   if [ $build_locally = 1 ] ; then
     cd ./\$sys/rel-0.1; bash build_local.sh; cd -
   fi
+  
+  cp ./sims.log ./\$sys.log
    
 }
 

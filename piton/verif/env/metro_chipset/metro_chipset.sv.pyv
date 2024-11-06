@@ -29,6 +29,8 @@
 `include "define.tmp.h"
 `include "piton_system.vh"
 `include "jtag.vh"
+`include "l2.tmp.h"
+`include "l15.tmp.h"
 
 
 <%

@@ -37,15 +37,6 @@
 `include "piton_system.vh"
 `include "jtag.vh"
 
-`ifdef PITON_DPI
-import "DPI-C" function longint read_64b_call (input longint addr);
-import "DPI-C" function void write_64b_call (input longint addr, input longint data);
-import "DPI-C" function int drive_iob ();
-import "DPI-C" function int get_cpx_word (int index);
-import "DPI-C" function void report_pc (longint thread_pc);
-import "DPI-C" function void init_jbus_model_call(string str, int oram);
-`endif
-
 
 `timescale 1ps/1ps
 module metro_fake_mem (

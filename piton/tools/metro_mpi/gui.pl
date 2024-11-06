@@ -950,7 +950,7 @@ sub gen_cache_tab{
 		my $w= gen_label_in_left(" $p ");
 		$table->attach  ( $w , $col, $col+1,  $row,$row+1,'fill','shrink',2,2);$col++;
 		
-		if($p eq 'hpdc'){
+		if($p eq 'hpdc_old'){
 		    $w=gen_combobox_object ($self,"CTRL","${p}_req_width","1,2,4,8",'1',undef,undef) ;
 		    $table->attach  ( $w , 4, 5,  $row,$row+1,'fill','shrink',2,2);$col++;
 		    $row++;
